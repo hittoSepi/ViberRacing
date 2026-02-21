@@ -1,0 +1,58 @@
+# Build
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.o
+*.obj
+*.a
+*.lib
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+*.xcodeproj/
+*.xcworkspace/
+
+# Binaries
+bin/
+lib/
+*.so
+*.dll
+*.dylib
+*.exe
+ViberRacing
+
+# Assets (generated/compiled)
+assets/shaders/compiled/
+
+# Temp
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Config (user-specific)
+config.local.json
+
+# Test artifacts
+Testing/
+CTestTestfile.cmake
+
+# Profiling
+*.prof
+perf.data
+perf.data.old
