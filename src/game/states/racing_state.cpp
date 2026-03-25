@@ -20,6 +20,11 @@ void RacingState::init() {
 }
 
 void RacingState::shutdown() {
+    m_atmosphere.destroy();
+    if (bgfx::isValid(m_atmoProgram)) {
+        bgfx::destroy(m_atmoProgram);
+        m_atmoProgram = BGFX_INVALID_HANDLE;
+    }
     m_vehicle.reset();
     m_track.reset();
     m_physicsWorld.reset();
@@ -36,6 +41,15 @@ void RacingState::onEnter() {
     
     m_track = std::make_unique<Track>();
     m_track->generateTestTrack();
+
+    if (!bgfx::isValid(m_atmoProgram)) {
+        m_atmoProgram = createAtmosphereShader();
+    }
+
+    if (bgfx::isValid(m_atmoProgram)) {
+        m_atmosphere.init();
+        m_atmosphere.setTimeOfDay(m_timeOfDay);
+    }
     
     m_lapTime = 0.0f;
     m_currentLap = 1;
@@ -43,6 +57,7 @@ void RacingState::onEnter() {
 }
 
 void RacingState::onExit() {
+    m_atmosphere.destroy();
     m_vehicle.reset();
     m_track.reset();
     m_physicsWorld.reset();
@@ -61,8 +76,15 @@ void RacingState::update(float deltaTime) {
 
 void RacingState::render() {
     auto& renderer = m_game.getRenderer();
-    
+
+    const mat4 view = m_camera.getViewMatrix();
+    const mat4 proj = m_camera.getProjectionMatrix();
+
     renderer.setViewTransform(m_camera);
+
+    if (bgfx::isValid(m_atmoProgram)) {
+        m_atmosphere.render(0, m_atmoProgram, view, proj);
+    }
     
     m_track->render(renderer);
     
@@ -161,6 +183,8 @@ void RacingState::renderUI() {
     ImGui::Text("Space: Brake");
     ImGui::Text("R: Reset Position");
     ImGui::Text("Esc: Menu");
+    ImGui::Separator();
+    ImGui::Text("Sky: %.0f%%", m_timeOfDay * 100.0f);
     
     ImGui::End();
 }

@@ -8,6 +8,8 @@ add_library(vr_game STATIC
     entities/car.cpp
     entities/car_body.cpp
     entities/car_damage.cpp
+    entities/atmosphere.cpp
+    entities/ground_plane.cpp
     entities/track.cpp
     entities/checkpoint.cpp
     track_editor/editor.cpp

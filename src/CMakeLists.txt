@@ -8,6 +8,8 @@ add_subdirectory(game)
 
 add_executable(ViberRacing main.cpp)
 
+add_dependencies(ViberRacing shaders)
+
 target_link_libraries(ViberRacing PRIVATE
     vr_core
     vr_renderer
@@ -20,6 +22,12 @@ target_link_libraries(ViberRacing PRIVATE
 
 set_target_properties(ViberRacing PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+add_custom_command(TARGET ViberRacing POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets"
+        "$<TARGET_FILE_DIR:ViberRacing>/assets"
 )
 
 if(UNIX AND NOT APPLE)

@@ -1,9 +1,26 @@
 #include "embedded_shaders.hpp"
 #include <spdlog/spdlog.h>
+#include <filesystem>
 #include <fstream>
 #include <vector>
 
 namespace viber {
+
+static std::string findShaderPath(const char* name) {
+    const std::vector<std::string> candidates = {
+        std::string("assets/shaders/") + name,
+        std::string("../assets/shaders/") + name,
+        std::string("../../assets/shaders/") + name,
+    };
+
+    for (const auto& path : candidates) {
+        if (std::filesystem::exists(path)) {
+            return path;
+        }
+    }
+
+    return candidates.front();
+}
 
 static bgfx::ShaderHandle loadShaderFromFile(const char* path) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -22,26 +39,36 @@ static bgfx::ShaderHandle loadShaderFromFile(const char* path) {
     return bgfx::createShader(mem);
 }
 
-bgfx::ProgramHandle createBasicShader() {
-    bgfx::ShaderHandle vs = loadShaderFromFile("assets/shaders/vs_basic.bin");
-    bgfx::ShaderHandle fs = loadShaderFromFile("assets/shaders/fs_basic.bin");
+static bgfx::ProgramHandle createProgramFromFiles(const char* vsName, const char* fsName) {
+    const std::string vsPath = findShaderPath(vsName);
+    const std::string fsPath = findShaderPath(fsName);
+
+    bgfx::ShaderHandle vs = loadShaderFromFile(vsPath.c_str());
+    bgfx::ShaderHandle fs = loadShaderFromFile(fsPath.c_str());
     
     if (!bgfx::isValid(vs) || !bgfx::isValid(fs)) {
+        if (bgfx::isValid(vs)) {
+            bgfx::destroy(vs);
+        }
+        if (bgfx::isValid(fs)) {
+            bgfx::destroy(fs);
+        }
         return BGFX_INVALID_HANDLE;
     }
     
     return bgfx::createProgram(vs, fs, true);
 }
 
+bgfx::ProgramHandle createBasicShader() {
+    return createProgramFromFiles("vs_basic.bin", "fs_basic.bin");
+}
+
 bgfx::ProgramHandle createTexturedShader() {
-    bgfx::ShaderHandle vs = loadShaderFromFile("assets/shaders/vs_textured.bin");
-    bgfx::ShaderHandle fs = loadShaderFromFile("assets/shaders/fs_textured.bin");
-    
-    if (!bgfx::isValid(vs) || !bgfx::isValid(fs)) {
-        return BGFX_INVALID_HANDLE;
-    }
-    
-    return bgfx::createProgram(vs, fs, true);
+    return createProgramFromFiles("vs_textured.bin", "fs_textured.bin");
+}
+
+bgfx::ProgramHandle createAtmosphereShader() {
+    return createProgramFromFiles("vs_atmosphere.bin", "fs_atmosphere.bin");
 }
 
 } // namespace viber

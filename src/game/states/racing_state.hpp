@@ -2,9 +2,11 @@
 
 #include "game/states/state.hpp"
 #include "renderer/camera.hpp"
+#include "renderer/shaders/embedded_shaders.hpp"
 #include "physics/world.hpp"
 #include "physics/vehicle.hpp"
 #include "game/entities/car.hpp"
+#include "game/entities/atmosphere.hpp"
 #include "game/entities/track.hpp"
 #include <memory>
 
@@ -31,6 +33,8 @@ private:
     void renderUI();
     
     Camera m_camera;
+    Atmosphere m_atmosphere;
+    bgfx::ProgramHandle m_atmoProgram = BGFX_INVALID_HANDLE;
     std::unique_ptr<PhysicsWorld> m_physicsWorld;
     std::unique_ptr<Vehicle> m_vehicle;
     std::unique_ptr<Track> m_track;
@@ -40,6 +44,7 @@ private:
     
     float m_lapTime = 0.0f;
     float m_bestLapTime = 0.0f;
+    float m_timeOfDay = 0.34f;
     int m_currentLap = 1;
     int m_totalLaps = 3;
     bool m_raceFinished = false;

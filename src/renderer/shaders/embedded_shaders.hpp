@@ -10,4 +10,7 @@ bgfx::ProgramHandle createBasicShader();
 // Load textured shader (requires compiled .bin files)
 bgfx::ProgramHandle createTexturedShader();
 
+// Load atmosphere shader (fullscreen gradient)
+bgfx::ProgramHandle createAtmosphereShader();
+
 } // namespace viber

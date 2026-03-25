@@ -1,5 +1,7 @@
 add_executable(car_editor main.cpp)
 
+add_dependencies(car_editor shaders)
+
 target_link_libraries(car_editor PRIVATE
     vr_core
     vr_renderer
@@ -15,6 +17,12 @@ target_include_directories(car_editor PRIVATE
 
 set_target_properties(car_editor PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+add_custom_command(TARGET car_editor POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets"
+        "$<TARGET_FILE_DIR:car_editor>/assets"
 )
 
 if(UNIX AND NOT APPLE)

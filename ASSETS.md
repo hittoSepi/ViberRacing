@@ -68,15 +68,12 @@ assets/
 
 ### Shaders
 Shaders must be compiled to bgfx's binary format (`.bin`):
-- Use `shaderc` tool from bgfx to compile from:
-  - Vertex shaders: `.vs` or `.vert`
-  - Fragment shaders: `.fs` or `.frag`
+- The project build uses bgfx's `shaderc` automatically via CMake.
+- Shader sources live in `assets/shaders/src/*.sc`.
 
 Example compilation:
 ```bash
-shaderc -f vs_basic.sc -o vs_basic.bin \
-    --type vertex --platform linux \
-    -p spirv -i $BGFX_DIR/src
+cmake --build build --config Debug --target shaders
 ```
 
 ### Audio
