@@ -1,4 +1,8 @@
-add_executable(car_editor main.cpp)
+add_executable(car_editor
+    main.cpp
+    editor_state.cpp
+    editor_ui.cpp
+)
 
 add_dependencies(car_editor shaders)
 
