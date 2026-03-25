@@ -3,12 +3,15 @@ if(MSVC)
         /W4
         /WX-
         /MP
-        /EHsc
-        /utf-8
+        /Zc:__cplusplus
+        /Zc:preprocessor
+        /wd4005
     )
     add_compile_definitions(
         _CRT_SECURE_NO_WARNINGS
         _SILENCE_ALL_CXX17_DEPRECATION_WARNINGS
+        NOMINMAX
+        WIN32_LEAN_AND_MEAN
     )
 else()
     add_compile_options(

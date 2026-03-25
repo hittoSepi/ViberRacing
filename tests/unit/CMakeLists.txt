@@ -13,4 +13,4 @@ target_link_libraries(vr_tests_unit PRIVATE
     Catch2::Catch2WithMain
 )
 
-catch_discover_tests(vr_tests_unit)
+add_test(NAME vr_tests_unit COMMAND vr_tests_unit)
