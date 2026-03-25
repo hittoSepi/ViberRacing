@@ -205,33 +205,27 @@ void ImGuiRenderer::render() {
     
     for (int n = 0; n < drawData->CmdListsCount; ++n) {
         const ImDrawList* cmdList = drawData->CmdLists[n];
-        
-        const ImDrawVert* vtxBuf = cmdList->VtxBuffer.Data;
-        const ImDrawIdx* idxBuf = cmdList->IdxBuffer.Data;
-        
-        if (!bgfx::isValid(m_vbh) || bgfx::getAvailTransientVertexBuffer(
-            static_cast<u32>(cmdList->VtxBuffer.Size), m_layout) < cmdList->VtxBuffer.Size) {
-            bgfx::TransientVertexBuffer tvb;
-            bgfx::allocTransientVertexBuffer(&tvb, 
-                static_cast<u32>(cmdList->VtxBuffer.Size), m_layout);
-            std::memcpy(tvb.data, vtxBuf, cmdList->VtxBuffer.Size * sizeof(ImDrawVert));
-            bgfx::setVertexBuffer(0, &tvb);
+
+        const u32 numVertices = static_cast<u32>(cmdList->VtxBuffer.Size);
+        const u32 numIndices  = static_cast<u32>(cmdList->IdxBuffer.Size);
+        const bool idx32 = sizeof(ImDrawIdx) == 4;
+
+        if (bgfx::getAvailTransientVertexBuffer(numVertices, m_layout) < numVertices ||
+            bgfx::getAvailTransientIndexBuffer(numIndices, idx32) < numIndices) {
+            continue;
         }
-        
-        if (!bgfx::isValid(m_ibh) || bgfx::getAvailTransientIndexBuffer(
-            static_cast<u32>(cmdList->IdxBuffer.Size)) < cmdList->IdxBuffer.Size) {
-            bgfx::TransientIndexBuffer tib;
-            bgfx::allocTransientIndexBuffer(&tib, 
-                static_cast<u32>(cmdList->IdxBuffer.Size), 
-                sizeof(ImDrawIdx) == 4);
-            std::memcpy(tib.data, idxBuf, cmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
-            bgfx::setIndexBuffer(&tib);
-        }
-        
+
+        bgfx::TransientVertexBuffer tvb;
+        bgfx::TransientIndexBuffer  tib;
+        bgfx::allocTransientVertexBuffer(&tvb, numVertices, m_layout);
+        bgfx::allocTransientIndexBuffer(&tib, numIndices, idx32);
+        std::memcpy(tvb.data, cmdList->VtxBuffer.Data, numVertices * sizeof(ImDrawVert));
+        std::memcpy(tib.data, cmdList->IdxBuffer.Data, numIndices  * sizeof(ImDrawIdx));
+
         u32 idxOffset = 0;
         for (int cmdi = 0; cmdi < cmdList->CmdBuffer.Size; ++cmdi) {
             const ImDrawCmd* pcmd = &cmdList->CmdBuffer[cmdi];
-            
+
             if (pcmd->UserCallback) {
                 pcmd->UserCallback(cmdList, pcmd);
             } else {
@@ -240,20 +234,25 @@ void ImGuiRenderer::render() {
                 bgfx::setScissor(xx, yy,
                     static_cast<u16>(std::min(pcmd->ClipRect.z, 65535.0f) - xx),
                     static_cast<u16>(std::min(pcmd->ClipRect.w, 65535.0f) - yy));
-                
-                ImTextureID texId = pcmd->GetTexID();
+
                 bgfx::TextureHandle texHandle = m_fontTexture;
+                ImTextureID texId = pcmd->GetTexID();
                 if (texId) {
-                    // texId is a pointer to bgfx::TextureHandle
                     texHandle = *reinterpret_cast<bgfx::TextureHandle*>(texId);
                 }
                 bgfx::setTexture(0, m_u_texture, texHandle);
-                
-                bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA);
-                
+
+                bgfx::setState(
+                    BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A |
+                    BGFX_STATE_BLEND_FUNC(BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA)
+                );
+
+                // Must re-bind VB/IB before every submit — bgfx consumes state on submit
+                bgfx::setVertexBuffer(0, &tvb);
+                bgfx::setIndexBuffer(&tib, idxOffset, pcmd->ElemCount);
                 bgfx::submit(255, m_program);
             }
-            
+
             idxOffset += pcmd->ElemCount;
         }
     }
