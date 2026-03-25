@@ -1,0 +1,102 @@
+{
+  "chassis": [
+    {
+      "id": "sedan_a",
+      "mesh": "assets/cars/parts/chassis_sedan_a.bin",
+      "compatible_with": ["sedan_a", "hatchback_b"]
+    },
+    {
+      "id": "hatchback_b",
+      "mesh": "assets/cars/parts/chassis_hatchback_b.bin",
+      "compatible_with": ["sedan_a", "hatchback_b"]
+    }
+  ],
+  "hood": [
+    {
+      "id": "hood_flat",
+      "mesh": "assets/cars/parts/hood_flat.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.55, 0.8]
+    },
+    {
+      "id": "hood_scooped",
+      "mesh": "assets/cars/parts/hood_scooped.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.55, 0.8]
+    }
+  ],
+  "bumper_front": [
+    {
+      "id": "bumper_front_standard",
+      "mesh": "assets/cars/parts/bumper_front_standard.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.1, 2.2],
+      "detachable": true
+    },
+    {
+      "id": "bumper_front_sport",
+      "mesh": "assets/cars/parts/bumper_front_sport.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.1, 2.2],
+      "detachable": true
+    }
+  ],
+  "bumper_rear": [
+    {
+      "id": "bumper_rear_standard",
+      "mesh": "assets/cars/parts/bumper_rear_standard.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.1, -2.1],
+      "detachable": true
+    }
+  ],
+  "roof": [
+    {
+      "id": "roof_sedan",
+      "mesh": "assets/cars/parts/roof_sedan.bin",
+      "compatible_chassis": ["sedan_a"],
+      "local_offset": [0.0, 0.95, 0.1]
+    },
+    {
+      "id": "roof_hatch",
+      "mesh": "assets/cars/parts/roof_hatch.bin",
+      "compatible_chassis": ["hatchback_b"],
+      "local_offset": [0.0, 0.95, 0.1]
+    }
+  ],
+  "spoiler": [
+    {
+      "id": "spoiler_none",
+      "mesh": "",
+      "compatible_chassis": ["sedan_a", "hatchback_b"]
+    },
+    {
+      "id": "spoiler_small",
+      "mesh": "assets/cars/parts/spoiler_small.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 0.85, -1.9],
+      "detachable": true
+    },
+    {
+      "id": "spoiler_large",
+      "mesh": "assets/cars/parts/spoiler_large.bin",
+      "compatible_chassis": ["sedan_a", "hatchback_b"],
+      "local_offset": [0.0, 1.0, -1.9],
+      "detachable": true
+    }
+  ],
+  "wheels": [
+    {
+      "id": "wheel_standard",
+      "mesh": "assets/cars/parts/wheel_standard.bin"
+    },
+    {
+      "id": "wheel_sport",
+      "mesh": "assets/cars/parts/wheel_sport.bin"
+    },
+    {
+      "id": "wheel_offroad",
+      "mesh": "assets/cars/parts/wheel_offroad.bin"
+    }
+  ]
+}

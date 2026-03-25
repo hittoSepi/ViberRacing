@@ -52,7 +52,6 @@ void LobbyState::update(float) {
 void LobbyState::render() {
     auto& renderer = m_game.getRenderer();
     
-    renderer.beginFrame();
     renderer.setViewTransform(m_camera);
     
     renderUI();

@@ -108,7 +108,8 @@ void Vehicle::destroy() {
 }
 
 void Vehicle::setThrottle(float throttle) {
-    m_state.engineForce = m_params.maxEngineForce * glm::clamp(throttle, -1.0f, 1.0f);
+    float maxForce = m_maxEngineForceOverride >= 0.0f ? m_maxEngineForceOverride : m_params.maxEngineForce;
+    m_state.engineForce = maxForce * glm::clamp(throttle, -1.0f, 1.0f);
     
     for (int i = 2; i < 4; ++i) {
         m_vehicle->applyEngineForce(m_state.engineForce, i);
@@ -245,8 +246,10 @@ void Vehicle::applyTireForces() {
         }
         
         float grip = m_tireModel->calculateGrip(slipRatio, slipAngle, normalForce);
-        
-        wheelInfo.m_frictionSlip = m_params.wheelFriction * grip;
+        float baseFriction = m_wheelFrictionOverride[i] >= 0.0f
+            ? m_wheelFrictionOverride[i]
+            : m_params.wheelFriction;
+        wheelInfo.m_frictionSlip = baseFriction * grip;
         
         m_state.lateralSlip[i] = slipAngle;
         m_state.longitudinalSlip[i] = slipRatio;
@@ -290,6 +293,15 @@ float Vehicle::getSpeedKmh() const {
 
 void Vehicle::setTireModel(std::unique_ptr<TireModel> model) {
     m_tireModel = std::move(model);
+}
+
+void Vehicle::setWheelFriction(int wheelIndex, float friction) {
+    if (wheelIndex < 0 || wheelIndex >= 4) return;
+    m_wheelFrictionOverride[wheelIndex] = friction;
+}
+
+void Vehicle::setMaxEngineForce(float maxForce) {
+    m_maxEngineForceOverride = maxForce;
 }
 
 mat4 Vehicle::getWorldTransform() const {

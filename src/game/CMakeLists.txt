@@ -6,6 +6,8 @@ add_library(vr_game STATIC
     states/editor_state.cpp
     states/lobby_state.cpp
     entities/car.cpp
+    entities/car_body.cpp
+    entities/car_damage.cpp
     entities/track.cpp
     entities/checkpoint.cpp
     track_editor/editor.cpp

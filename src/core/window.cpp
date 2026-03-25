@@ -78,6 +78,7 @@ Window::Window(const WindowConfig& config) : m_config(config) {
     glfwSetKeyCallback(m_window, keyCallback);
     glfwSetCursorPosCallback(m_window, cursorPosCallback);
     glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
+    glfwSetScrollCallback(m_window, scrollCallback);
     
     double xpos, ypos;
     glfwGetCursorPos(m_window, &xpos, &ypos);
@@ -201,6 +202,10 @@ void Window::setMouseButtonCallback(std::function<void(int, int, int)> callback)
     m_mouseButtonCallback = std::move(callback);
 }
 
+void Window::setScrollCallback(std::function<void(double, double)> callback) {
+    m_scrollCallback = std::move(callback);
+}
+
 void Window::framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
@@ -237,6 +242,13 @@ void Window::mouseButtonCallback(GLFWwindow* window, int button, int action, int
     auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self && self->m_mouseButtonCallback) {
         self->m_mouseButtonCallback(button, action, mods);
+    }
+}
+
+void Window::scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
+    if (self && self->m_scrollCallback) {
+        self->m_scrollCallback(xoffset, yoffset);
     }
 }
 

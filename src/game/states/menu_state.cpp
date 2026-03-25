@@ -36,9 +36,8 @@ void MenuState::update(float) {
 void MenuState::render() {
     auto& renderer = m_game.getRenderer();
     
-    renderer.beginFrame();
     renderer.setViewTransform(m_camera);
-    
+
     renderUI();
 }
 

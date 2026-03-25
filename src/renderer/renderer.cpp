@@ -41,8 +41,13 @@ Renderer::Renderer(Window& window) : m_window(window) {
     spdlog::info("Initializing renderer with window size: {}x{}", m_windowSize.x, m_windowSize.y);
     
     bgfx::Init init;
+#if defined(__linux__)
     // Use Vulkan on Linux for better Wayland compatibility
     init.type = bgfx::RendererType::Vulkan;
+#else
+    // Use OpenGL to match pre-compiled GLSL shaders
+    init.type = bgfx::RendererType::OpenGL;
+#endif
     init.vendorId = BGFX_PCI_ID_NONE;
     init.deviceId = 0;
     init.platformData.nwh = nullptr;

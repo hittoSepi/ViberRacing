@@ -85,6 +85,10 @@ add_subdirectory(${VR_THIRD_PARTY_DIR}/RmlUi RmlUi)
 add_subdirectory(assets/shaders)
 add_subdirectory(src)
 
+if(VIBER_BUILD_TOOLS)
+    add_subdirectory(tools/car_editor)
+endif()
+
 if(VIBER_BUILD_TESTS)
     enable_testing()
     add_subdirectory(${VR_THIRD_PARTY_DIR}/Catch2 Catch2)

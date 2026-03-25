@@ -104,7 +104,11 @@ public:
     
     void setTireModel(std::unique_ptr<TireModel> model);
     TireModel* getTireModel() const { return m_tireModel.get(); }
-    
+
+    // Dynamic damage overrides. Pass negative value to restore defaults.
+    void setWheelFriction(int wheelIndex, float friction);
+    void setMaxEngineForce(float maxForce);
+
     mat4 getWorldTransform() const;
     mat4 getWheelTransform(int wheelIndex) const;
     
@@ -122,7 +126,11 @@ private:
     
     VehicleParams m_params;
     VehicleState m_state;
-    
+
+    // Damage overrides; negative = use m_params default
+    float m_wheelFrictionOverride[4] = {-1.0f, -1.0f, -1.0f, -1.0f};
+    float m_maxEngineForceOverride = -1.0f;
+
     bool m_created = false;
 };
 

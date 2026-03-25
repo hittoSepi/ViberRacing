@@ -46,7 +46,6 @@ void EditorState::update(float deltaTime) {
 void EditorState::render() {
     auto& renderer = m_game.getRenderer();
     
-    renderer.beginFrame();
     renderer.setViewTransform(m_camera);
     
     m_editor->render(renderer, m_camera);

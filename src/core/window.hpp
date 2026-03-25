@@ -45,6 +45,7 @@ public:
     void setKeyCallback(std::function<void(int, int, int, int)> callback);
     void setMouseCallback(std::function<void(double, double)> callback);
     void setMouseButtonCallback(std::function<void(int, int, int)> callback);
+    void setScrollCallback(std::function<void(double, double)> callback);
     
     GLFWwindow* getHandle() const { return m_window; }
     
@@ -62,6 +63,7 @@ private:
     std::function<void(int, int, int, int)> m_keyCallback;
     std::function<void(double, double)> m_mouseCallback;
     std::function<void(int, int, int)> m_mouseButtonCallback;
+    std::function<void(double, double)> m_scrollCallback;
     
     double m_lastMouseX = 0.0;
     double m_lastMouseY = 0.0;
@@ -72,6 +74,7 @@ private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 };
 
 }
