@@ -1,486 +1,293 @@
 # AGENTS.md
 
-Coding agent instructions for the ViberRacing codebase.
+## Purpose
 
-## Project Overview
+This repository is worked on by coding agents.  
+Your job is to implement the requested C++ changes correctly, minimally, and deterministically.
 
-ViberRacing is a 3D racing game with a collaborative track editor, built with modern C++20 and OpenGL 4.5 via bgfx.
+Do not improvise architecture.  
+Do not replace requested functionality with a simpler different feature.  
+Do not silently downgrade requirements just because the implementation is harder.
 
-### Technology Stack
+If the user asks for a real fix, implement the real fix.
 
-| Component | Technology | Version/Notes |
-|-----------|------------|---------------|
-| Language | C++ | C++20 standard |
-| Build System | CMake | 3.20+ required |
-| Rendering | bgfx | OpenGL 4.5 backend |
-| Physics | Bullet3 | btRaycastVehicle for vehicles |
-| Networking | ENet | P2P multiplayer |
-| Window/Input | GLFW | Cross-platform |
-| Math | GLM | Column-major matrices |
-| UI (Debug) | ImGui | Runtime debug panels |
-| UI (Game) | RmlUi | Game HUD (HTML/CSS-like) |
-| Logging | spdlog | File + console output |
-| Model Loading | Assimp | Multiple format support |
-| Image Loading | STB | stb_image for textures |
-| Config/JSON | nlohmann/json | JSON-based config |
-| Testing | Catch2 | v3 with Catch2::Catch2WithMain |
-| String Format | fmt | Through spdlog dependency |
-| Code Format | clang-format | LLVM style, 120 columns |
-
-## Build Commands
-
-### Initial Setup
-
-```bash
-# Clone with all submodules (required!)
-git clone --recursive https://github.com/yourname/ViberRacing.git
-cd ViberRacing
-
-# If submodules are missing, initialize them:
-git submodule update --init --recursive
-
-# Build
-mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-make -j$(nproc)
-```
-
-### Build Options
-
-```bash
-# Debug build (default, defines VIBER_DEBUG)
-cmake .. -DCMAKE_BUILD_TYPE=Debug
-
-# Release with debug info (defines VIBER_RELEASE)
-cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
-
-# Shipping release (defines VIBER_RELEASE and VIBER_SHIPPING)
-cmake .. -DCMAKE_BUILD_TYPE=Release
-
-# Disable tests
-cmake .. -DVIBER_BUILD_TESTS=OFF
-
-# Enable profiling
- cmake .. -DVIBER_ENABLE_PROFILING=ON
-```
-
-### Rebuild After Changes
-
-```bash
-cd build && make -j$(nproc)
-```
-
-### Run the Game
-
-```bash
-./bin/ViberRacing
-```
-
-### Format Code
-
-```bash
-find src tests -name "*.hpp" -o -name "*.cpp" | xargs clang-format -i
-```
-
-## Test Commands
-
-```bash
-# Run all tests (from build directory)
-ctest --output-on-failure
-
-# Run specific test by name (regex match)
-ctest -R "Spline"
-ctest -R "PhysicsWorld"
-ctest -R "Vehicle"
-
-# Run with verbose output
-ctest -V -R "TestName"
-
-# Run unit tests only
-ctest -R "unit"
-
-# Run integration tests only
-ctest -R "integration"
-```
-
-## Project Structure
-
-```
-ViberRacing/
-├── src/
-│   ├── core/          # Window, input, config, logging, types
-│   ├── renderer/      # bgfx wrapper, shaders, camera, mesh, texture
-│   ├── physics/       # Bullet wrapper, vehicle, tire model, collision
-│   ├── game/          # Game states, entities, track editor
-│   ├── networking/    # ENet P2P, state sync
-│   ├── assets/        # Resource manager, mesh/texture loaders
-│   └── utils/         # Math, profiler, spline, serialization
-├── tests/
-│   ├── unit/          # Unit tests
-│   └── integration/   # Integration tests
-├── assets/            # Models, textures, shaders, config
-├── tools/             # Shader compiler script
-├── docs/              # Architecture documentation
-└── third_party/       # Git submodules (dependencies)
-```
-
-### Module Dependencies
-
-```
-vr_core       <- glfw, spdlog, nlohmann_json
-vr_utils      <- vr_core
-vr_renderer   <- vr_core, vr_utils, bgfx, imgui, RmlUi
-vr_physics    <- vr_core, vr_utils, Bullet3
-vr_networking <- vr_core, vr_utils, enet
-vr_assets     <- vr_core, vr_renderer, assimp
-vr_game       <- vr_core, vr_renderer, vr_physics, vr_networking, vr_assets, vr_utils
-```
-
-Each module compiles to a static library with the naming pattern `vr_<module>`.
-
-## Code Style Guidelines
-
-### Naming Conventions
-
-| Element | Convention | Example |
-|---------|------------|---------|
-| Files | snake_case | `vehicle.cpp`, `tire_model.hpp` |
-| Classes/Structs | PascalCase | `PhysicsWorld`, `VehicleParams` |
-| Functions/Methods | camelCase | `updateCamera`, `setSteering`, `addControlPoint` |
-| Member variables | `m_` prefix | `m_world`, `m_chassisBody`, `m_initialized` |
-| Constants | PascalCase constexpr | `constexpr f32 Pi = 3.14159f;` |
-| Enum classes | PascalCase | `enum class GameStateType { ... }` |
-| Enum values | PascalCase | `Menu, Racing, Editor, Lobby` |
-| Template parameters | PascalCase | `typename T, typename Allocator` |
-
-### Types
-
-Always use type aliases from `core/types.hpp`:
-
-```cpp
-// Integral types
-i8, i16, i32, i64    // Signed integers
-u8, u16, u32, u64    // Unsigned integers
-
-// Floating point
-f32, f64             // float, double
-
-// Math types (from GLM)
-vec2, vec3, vec4     // float vectors
-ivec2, ivec3, ivec4  // int vectors
-uvec2, uvec3, uvec4  // uint vectors
-mat2, mat3, mat4     // matrices
-quat                 // quaternion
-
-// Constants (defined in types.hpp)
-PI, TWO_PI, HALF_PI
-DEG_TO_RAD, RAD_TO_DEG
-```
-
-### Smart Pointers
-
-```cpp
-// Use these aliases instead of std:: directly
-Scope<T>    // = std::unique_ptr<T>
-Ref<T>      // = std::shared_ptr<T>
-
-// Factory functions
-createScope<T>(args...)    // = std::make_unique<T>(...)
-createRef<T>(args...)      // = std::make_shared<T>(...)
-```
-
-Example:
-```cpp
-Scope<Vehicle> vehicle = createScope<Vehicle>();
-auto vehicle = createScope<Vehicle>();  // Also OK with auto
-```
-
-### Headers and Includes
-
-- Use `#pragma once` for header guards (NOT `#ifndef` guards)
-- Include order:
-  1. Standard library headers
-  2. Third-party headers
-  3. Project headers (relative to `src/`)
-
-```cpp
-#pragma once
-
-#include <string>
-#include <vector>
-#include <memory>
-
-#include <spdlog/spdlog.h>
-#include <glm/glm.hpp>
-
-#include "core/types.hpp"
-#include "physics/world.hpp"
-```
-
-### Classes
-
-Follow this class layout pattern:
-
-```cpp
-class MyClass {
-public:
-    // Constructor/Destructor
-    MyClass() = default;
-    explicit MyClass(const Params& params);
-    ~MyClass() { destroy(); }
-    
-    // Disable copy (for resource-owning classes)
-    MyClass(const MyClass&) = delete;
-    MyClass& operator=(const MyClass&) = delete;
-    
-    // Enable move (if needed)
-    MyClass(MyClass&&) noexcept = default;
-    MyClass& operator=(MyClass&&) noexcept = default;
-    
-    // Public interface
-    bool create();
-    void destroy();
-    void update(float deltaTime);
-    
-    // Getters/Setters
-    bool isCreated() const { return m_created; }
-    void setValue(int value) { m_value = value; }
-    
-private:
-    // Member variables
-    int m_value = 0;
-    bool m_created = false;
-    Scope<Resource> m_resource;
-};
-```
-
-### RAII Pattern
-
-For resource management, follow this pattern:
-
-```cpp
-class Resource {
-public:
-    Resource() = default;
-    ~Resource() { destroy(); }
-    
-    Resource(const Resource&) = delete;
-    Resource& operator=(const Resource&) = delete;
-    
-    bool create() {
-        if (m_created) return true;
-        // ... create resource
-        m_created = true;
-        return true;
-    }
-    
-    void destroy() {
-        if (!m_created) return;
-        // ... destroy resource
-        m_created = false;
-    }
-    
-private:
-    bool m_created = false;
-};
-```
-
-### State Pattern (Game States)
-
-```cpp
-class GameState {
-public:
-    explicit GameState(Game& game) : m_game(game) {}
-    virtual ~GameState() = default;
-    
-    virtual void init() = 0;
-    virtual void shutdown() = 0;
-    virtual void onEnter() = 0;
-    virtual void onExit() = 0;
-    virtual void onPause() {}
-    virtual void onResume() {}
-    
-    virtual void update(float deltaTime) = 0;
-    virtual void render() = 0;
-    
-    virtual const char* getName() const = 0;
-    
-protected:
-    Game& m_game;
-};
-```
-
-### Error Handling
-
-- Use exceptions for fatal/init errors (e.g., renderer initialization failure)
-- Return `bool` for fallible operations (e.g., `loadTrack()`, `saveTrack()`)
-- Log errors with `spdlog::error()` before returning failure
-- Use `REQUIRE_NOTHROW` in tests for operations that shouldn't throw
-
-```cpp
-bool loadConfig(const std::string& path) {
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        spdlog::error("Failed to open config: {}", path);
-        return false;
-    }
-    // ... parse config
-    return true;
-}
-```
-
-## Testing Instructions
-
-### Writing Tests
-
-Use Catch2 with `TEST_CASE` and `SECTION` macros:
-
-```cpp
-#include <catch2/catch_test_macros.hpp>
-#include "utils/spline.hpp"
-
-TEST_CASE("Spline evaluation", "[spline]") {
-    viber::Spline spline;
-    
-    SECTION("Empty spline") {
-        REQUIRE(spline.getNumControlPoints() == 0);
-    }
-    
-    SECTION("Add control points") {
-        spline.addControlPoint(viber::vec3(0.0f, 0.0f, 0.0f));
-        REQUIRE(spline.getNumControlPoints() == 1);
-    }
-}
-```
-
-### Floating-Point Comparisons
-
-Always use `Approx()` with margin:
-
-```cpp
-REQUIRE(value == Approx(1.0f).margin(0.001f));
-REQUIRE(vec.x == Approx(expectedX).margin(0.01f));
-```
-
-### Test Organization
-
-- Unit tests: `tests/unit/test_<module>.cpp`
-- Integration tests: `tests/integration/test_<feature>.cpp`
-- Tag tests: `[physics]`, `[spline]`, `[networking]`, `[math]`, etc.
-
-## Shader Compilation
-
-Shaders use bgfx's shaderc compiler:
-
-```bash
-# Compile all shaders
-cd tools && ./compile_shaders.sh
-
-# Or set custom shaderc path
-BGFX_SHADERC=/path/to/shaderc ./compile_shaders.sh
-```
-
-### Shader Naming
-
-- `vs_*.sc` - Vertex shaders
-- `fs_*.sc` - Fragment shaders
-- `cs_*.sc` - Compute shaders
-
-### Shader Directories
-
-- Source: `assets/shaders/*.sc`
-- Compiled: `assets/shaders/compiled/*.bin`
-
-## Configuration
-
-Default config is at `assets/config/default.json`:
-
-```json
-{
-    "window": {
-        "width": 1280,
-        "height": 720,
-        "fullscreen": false,
-        "vsync": true,
-        "title": "ViberRacing"
-    },
-    "graphics": {
-        "msaa": 4,
-        "shadowQuality": 2,
-        "textureQuality": 2,
-        "anisotropy": 16
-    },
-    "network": {
-        "port": 7777,
-        "playerName": "Player",
-        "maxPlayers": 8
-    }
-}
-```
-
-## Logging
-
-```cpp
-#include <spdlog/spdlog.h>
-
-// Get the logger
-auto logger = spdlog::get("viber");
-
-// Log levels
-logger->trace("Trace message");
-logger->debug("Debug message");
-logger->info("Info message");
-logger->warn("Warning message");
-logger->error("Error message");
-logger->critical("Critical message");
-```
-
-## Debugging Tips
-
-- Enable bgfx debug text: `bgfx::setDebug(BGFX_DEBUG_TEXT)`
-- Use `VIBER_DEBUG` macro for debug-only code
-- Use ImGui for runtime debug UI panels
-- Use `DebugDraw` for 3D visualization of physics/collision
-
-## Key Third-Party Headers
-
-```cpp
-// GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
-
-// spdlog
-#include <spdlog/spdlog.h>
-
-// bgfx
-#include <bgfx/bgfx.h>
-#include <bgfx/platform.h>
-
-// Bullet3
-#include <btBulletDynamicsCommon.h>
-
-// ENet
-#include <enet/enet.h>
-
-// ImGui
-#include <imgui.h>
-
-// JSON
-#include <nlohmann/json.hpp>
-
-// GLFW
-#include <GLFW/glfw3.h>
-
-// Catch2 (tests only)
-#include <catch2/catch_test_macros.hpp>
-```
-
-## Development Status
-
-Early development. See `docs/MILESTONES.md` for progress and `docs/ARCHITECTURE.md` for system design details.
-
-## License
-
-MIT License
+---
+
+## Core Rules
+
+### 1. Stay inside scope
+Only do the task that was requested.
+
+- Do not refactor unrelated code.
+- Do not rename files, classes, methods, variables, or folders unless required.
+- Do not introduce abstractions, helper layers, wrappers, or “cleanup” unless necessary for the requested change.
+- Do not “improve” adjacent systems without being asked.
+
+### 2. Smallest real fix
+Make the smallest change that actually solves the requested problem.
+
+Good:
+- fix the broken shader loading path
+- add the required bgfx shader compilation step
+- correct resource initialization order
+- fix the actual API usage
+
+Bad:
+- remove shader usage because it is inconvenient
+- replace a requested graphics feature with a flat color
+- skip rendering work and claim a fallback is “simpler”
+- rewrite the feature into something easier but different
+
+### 3. Do not degrade the feature
+Never replace the requested feature with a weaker substitute unless the user explicitly asks for a fallback.
+
+Examples of forbidden behavior:
+- replacing shaders with clear color
+- replacing 3D rendering with UI mock output
+- replacing async logic with blocking logic because it is easier
+- replacing actual file IO with hardcoded data
+- replacing a real parser with a stub
+- disabling failing tests instead of fixing the code
+
+If the task is “make X work”, your job is to make **X** work, not to remove X.
+
+### 4. User is the ground truth
+If the user says something is broken, assume it is broken.
+Do not argue with the bug report.
+Investigate and fix it.
+
+### 5. No fake completion
+Do not claim something works unless the code actually supports that claim.
+
+Never say:
+- “this should work now” without checking
+- “bgfx does not support this” unless verified in the code/docs already present in the repo
+- “simpler solution” when it changes the requirement
+- “done” if there are known compile errors, missing assets, or unfinished integration points
+
+### 6. No placeholders
+Do not leave:
+- TODOs
+- stubs
+- pseudocode
+- commented-out future implementations
+- fake fallback code pretending to be the final solution
+
+Deliver complete working code.
+
+---
+
+## Decision Policy
+
+When implementation is difficult, follow this order:
+
+1. Understand the existing code and build flow
+2. Identify the real root cause
+3. Fix the root cause
+4. Preserve the original requested behavior
+5. Keep changes minimal
+
+Do **not** do this:
+
+1. Decide the requested thing is “too hard”
+2. Invent a reduced alternative
+3. Ship the reduced alternative
+4. Present it as a smart solution
+
+That is failure.
+
+---
+
+## C++ Specific Rules
+
+### Build and compile discipline
+Before finalizing, mentally verify at minimum:
+
+- includes are correct
+- forward declarations are valid
+- namespaces are correct
+- symbol names match declarations
+- signatures match headers and implementations
+- const correctness is not broken
+- ownership and lifetime are sane
+- required source files are included in the build
+- paths and asset references are correct
+- platform-specific code paths are guarded correctly
+
+Do not introduce code that obviously cannot compile.
+
+### Respect the existing style
+- Match the repository’s existing C++ style.
+- Do not reformat unrelated files.
+- Do not switch brace style, naming style, include order style, or error handling style unless editing that exact area requires it.
+
+### Respect current architecture
+- Use existing systems first.
+- Reuse current resource loading, logging, math, rendering, and platform layers where appropriate.
+- Do not add a new framework or subsystem for a small task.
+
+### Avoid speculative abstractions
+Do not create:
+- generic utility classes “for future use”
+- base classes not needed by the task
+- new interfaces just to look clean
+- template machinery unless the task truly requires it
+
+---
+
+## Graphics / Engine / Rendering Rules
+
+These are critical.
+
+### Do not replace real rendering work with fake substitutes
+If the task involves shaders, pipelines, materials, render passes, meshes, textures, or GPU resources:
+
+- implement the real rendering path required by the engine/framework
+- wire assets correctly
+- compile or load shaders correctly for the project’s pipeline
+- keep the intended visual feature intact
+
+Forbidden shortcut pattern:
+- “this API does not directly support X, so I replaced it with a simpler visual approximation”
+
+That is only allowed if the user explicitly asks for a temporary fallback.
+
+### For bgfx specifically
+If working with bgfx:
+
+- respect bgfx’s actual shader pipeline
+- use the project’s real shader compilation flow if one exists
+- if shader binaries are required, add or fix the correct build/integration step
+- do not replace shader-based rendering with clear color, UI fill, or unrelated hacks just to avoid proper integration
+
+If shader compilation or asset packaging is missing, fix that pipeline.  
+Do not remove the feature to avoid the pipeline work.
+
+### Preserve intent
+If the requested result is:
+- atmosphere
+- lighting
+- post-process
+- skybox
+- terrain shading
+- material effect
+
+then implement that feature properly within the engine constraints.  
+Do not collapse it into “good enough” unless the user explicitly approves a fallback.
+
+---
+
+## When Blocked
+
+If you hit a real blocker, do this:
+
+1. State the exact blocker briefly
+2. Point to the exact file / API / build step involved
+3. Propose the minimal path that preserves the requested feature
+4. Continue as far as possible without changing the requirement
+
+Example of acceptable behavior:
+- “bgfx in this project expects precompiled shaders from the shader build step. I updated the build to generate the required binaries and wired the loader to use them.”
+
+Example of unacceptable behavior:
+- “bgfx does not support direct GLSL loading, so I removed the shader feature and used a flat color instead.”
+
+---
+
+## Allowed Fallbacks
+
+Fallbacks are allowed only when one of these is true:
+
+- the user explicitly asks for a temporary workaround
+- the user explicitly says correctness can be traded for speed
+- the user explicitly asks for a mock, prototype, or placeholder
+
+Even then:
+- label the fallback clearly
+- do not present it as the full implementation
+- do not silently replace the original requirement
+
+---
+
+## File Editing Rules
+
+- Edit only files relevant to the task.
+- Keep diffs tight.
+- Do not create random scratch files.
+- Do not leave backup files, temp files, or “fixed2/final_final” copies.
+- Put new files in the correct project location only when required.
+
+---
+
+## Testing and Verification
+
+Before final output, verify as much as possible from the repository context:
+
+- compile-time consistency
+- references and includes
+- build integration
+- resource paths
+- config correctness
+- no obvious missing symbols
+- no obviously broken control flow
+
+If there are tests relevant to the task, update or add the smallest necessary coverage.
+
+Do not disable tests to make the task appear complete.
+
+---
+
+## Output Rules
+
+When reporting work:
+
+- be precise
+- say what changed
+- mention important constraints
+- mention any remaining real limitation honestly
+
+Do not pad the answer with speculative advice.
+Do not propose unrelated redesigns.
+Do not celebrate partial work as completion.
+
+---
+
+## Hard Prohibitions
+
+Never do any of the following unless the user explicitly asks:
+
+- replace requested functionality with a simpler different one
+- remove broken code without restoring the feature
+- silently add a mock instead of a real implementation
+- silently downgrade graphics, rendering, parsing, networking, or storage behavior
+- skip required build pipeline work by hardcoding output
+- invent new architecture to avoid understanding old code
+- claim library limitations without verifying from project reality
+- turn a real implementation request into a prototype
+
+---
+
+## One-line Operating Principle
+
+Implement the requested thing as requested, using the project’s real C++ and build pipeline, with the smallest real fix, and without creative shortcuts.
+
+
+## Rendering Anti-Slacking Rule
+
+If a task requires a shader, render pass, material, or GPU effect, you must implement the actual rendering path needed by the project.
+
+You are not allowed to:
+- replace it with clear color
+- replace it with an ImGui fullscreen rectangle
+- replace it with a mock visual
+- remove the effect because the asset/build pipeline needs work
+
+If the pipeline is missing, fix the pipeline.
+If the asset format is wrong, fix the asset format.
+If loading is wrong, fix loading.
+But keep the feature.
+
+
+## READ ADDITIONAL INFO
+
+Project info: `INSTRUCTIONS.md`

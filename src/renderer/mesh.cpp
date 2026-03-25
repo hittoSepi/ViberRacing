@@ -198,6 +198,60 @@ Mesh Mesh::createBox(const vec3& size) {
     return mesh;
 }
 
+Mesh Mesh::createSkyboxCube() {
+    // Inward-facing cube for skybox rendering
+    // We flip normals and winding order so inside faces are visible
+    Mesh mesh;
+    
+    float h = 1.0f;  // half size (cube goes from -1 to 1)
+    
+    std::vector<Vertex> vertices = {
+        // Front face (+Z) - normal points inward (-Z)
+        {{-h, -h,  h}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h, -h,  h}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h,  h,  h}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h,  h,  h}, {0.0f, 0.0f, -1.0f}, {0.0f, 1.0f}, {}, {}},
+        // Right face (+X) - normal points inward (-X)
+        {{ h, -h, -h}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h,  h, -h}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h, -h,  h}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{ h,  h,  h}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Back face (-Z) - normal points inward (+Z)
+        {{-h, -h, -h}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {}, {}},
+        {{-h,  h, -h}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h,  h, -h}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {}, {}},
+        {{ h, -h, -h}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {}, {}},
+        // Left face (-X) - normal points inward (+X)
+        {{-h, -h,  h}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{-h,  h,  h}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{-h,  h, -h}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h, -h, -h}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Top face (+Y) - normal points inward (-Y)
+        {{-h,  h,  h}, {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h,  h,  h}, {0.0f, -1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h,  h, -h}, {0.0f, -1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h,  h, -h}, {0.0f, -1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Bottom face (-Y) - normal points inward (+Y)
+        {{-h, -h, -h}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h, -h, -h}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h, -h,  h}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h, -h,  h}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+    };
+    
+    // CCW winding (from inside view)
+    std::vector<u32> indices = {
+        0, 2, 1, 0, 3, 2,       // Front
+        4, 6, 5, 5, 6, 7,       // Right
+        8, 10, 9, 8, 11, 10,    // Back
+        12, 14, 13, 12, 15, 14, // Left
+        16, 18, 17, 16, 19, 18, // Top
+        20, 22, 21, 20, 23, 22  // Bottom
+    };
+    
+    mesh.create(vertices, indices);
+    return mesh;
+}
+
 Mesh Mesh::createSphere(float radius, u32 rings, u32 sectors) {
     Mesh mesh;
     

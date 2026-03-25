@@ -1,0 +1,25 @@
+{
+  "accent_color": [
+    0.05000000074505806,
+    0.05000000074505806,
+    0.05000000074505806
+  ],
+  "bumper_front": "bumper_front_sport",
+  "bumper_rear": "bumper_rear_standard",
+  "chassis": "sedan_a",
+  "hood": "hood_scooped",
+  "primary_color": [
+    0.23578308522701263,
+    0.6984250545501709,
+    0.5480647683143616
+  ],
+  "roof": "roof_sedan",
+  "seed": 42,
+  "spoiler": "spoiler_large",
+  "wheels": [
+    "wheel_sport",
+    "wheel_sport",
+    "wheel_sport",
+    "wheel_sport"
+  ]
+}

@@ -61,6 +61,7 @@ public:
     
     static Mesh createCube();
     static Mesh createBox(const vec3& size);
+    static Mesh createSkyboxCube();  // Inward-facing cube for skybox
     static Mesh createSphere(float radius = 1.0f, u32 rings = 16, u32 sectors = 32);
     static Mesh createPlane(float width = 10.0f, float depth = 10.0f, 
                            u32 divisionsX = 1, u32 divisionsZ = 1);
