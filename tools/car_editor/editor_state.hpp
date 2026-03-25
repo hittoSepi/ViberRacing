@@ -1,5 +1,6 @@
 #pragma once
 
+#include "editor_style.hpp"
 #include "game/entities/car_body.hpp"
 #include "game/entities/car_damage.hpp"
 #include "game/entities/atmosphere.hpp"
@@ -79,9 +80,10 @@ struct EditorState {
     bool showControls = true;
     bool showHelp = false;
     float frameTimeMs = 0.0f;
+    EditorStyle style;
 };
 
-EditorLayout computeLayout(const ImVec2& display);
+EditorLayout computeLayout(const ImVec2& display, const EditorStyle& style);
 void applyCarDefinition(EditorState& state, const viber::CarDefinition& def);
 void resetCamera(EditorState& state);
 

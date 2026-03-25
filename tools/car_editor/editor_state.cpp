@@ -7,60 +7,56 @@
 
 namespace car_editor {
 
-EditorLayout computeLayout(const ImVec2& display) {
-    const float shellMargin = 0.0f;
-    const float innerMargin = 10.0f;
-    const float gap = 10.0f;
-    const float boardWidth = glm::max(640.0f, display.x - shellMargin * 2.0f);
-    const float boardHeight = glm::max(420.0f, display.y - shellMargin * 2.0f);
-    const float sidebarWidth = glm::clamp(boardWidth * 0.23f, 230.0f, 300.0f);
-    const float topBarHeight = 52.0f;
-    const float simHeight = glm::clamp(boardHeight * 0.28f, 150.0f, 210.0f);
+EditorLayout computeLayout(const ImVec2& display, const EditorStyle& style) {
+    const float boardWidth = glm::max(style.minBoardWidth, display.x - style.shellMargin * 2.0f);
+    const float boardHeight = glm::max(style.minBoardHeight, display.y - style.shellMargin * 2.0f);
+    const float sidebarWidth = glm::clamp(boardWidth * style.sidebarWidthRatio, style.sidebarMinWidth, style.sidebarMaxWidth);
+    const float simHeight = glm::clamp(boardHeight * style.simHeightRatio, style.simMinHeight, style.simMaxHeight);
 
     EditorLayout layout{};
-    layout.boardPos = {shellMargin, shellMargin};
+    layout.boardPos = {style.shellMargin, style.shellMargin};
     layout.boardSize = {boardWidth, boardHeight};
 
     layout.topBarPos = {
-        layout.boardPos.x + innerMargin,
-        layout.boardPos.y + innerMargin
+        layout.boardPos.x + style.innerMargin,
+        layout.boardPos.y + style.innerMargin
     };
     layout.topBarSize = {
-        boardWidth - innerMargin * 2.0f,
-        topBarHeight
+        boardWidth - style.innerMargin * 2.0f,
+        style.topBarHeight
     };
 
     layout.sidebarPos = {
         layout.topBarPos.x,
-        layout.topBarPos.y + layout.topBarSize.y + gap
+        layout.topBarPos.y + layout.topBarSize.y + style.gap
     };
     layout.sidebarSize = {
         sidebarWidth,
-        boardHeight - topBarHeight - simHeight - innerMargin * 2.0f - gap * 2.0f
+        boardHeight - style.topBarHeight - simHeight - style.innerMargin * 2.0f - style.gap * 2.0f
     };
 
     layout.viewportPos = {
-        layout.sidebarPos.x + layout.sidebarSize.x + gap,
+        layout.sidebarPos.x + layout.sidebarSize.x + style.gap,
         layout.sidebarPos.y
     };
     layout.viewportSize = {
-        boardWidth - sidebarWidth - innerMargin * 2.0f - gap,
-        boardHeight - topBarHeight - innerMargin * 2.0f - gap
+        boardWidth - sidebarWidth - style.innerMargin * 2.0f - style.gap,
+        boardHeight - style.topBarHeight - style.innerMargin * 2.0f - style.gap
     };
 
     layout.simPos = {
         layout.sidebarPos.x,
-        layout.sidebarPos.y + layout.sidebarSize.y + gap
+        layout.sidebarPos.y + layout.sidebarSize.y + style.gap
     };
     layout.simSize = {
         sidebarWidth,
         simHeight
     };
 
-    layout.controlsSize = {220.0f, 110.0f};
+    layout.controlsSize = {style.controlsWidth, style.controlsHeight};
     layout.controlsPos = {
-        layout.viewportPos.x + layout.viewportSize.x - 12.0f - layout.controlsSize.x,
-        layout.viewportPos.y + layout.viewportSize.y - 12.0f - layout.controlsSize.y
+        layout.viewportPos.x + layout.viewportSize.x - style.controlsInset - layout.controlsSize.x,
+        layout.viewportPos.y + layout.viewportSize.y - style.controlsInset - layout.controlsSize.y
     };
     return layout;
 }

@@ -1,6 +1,7 @@
 add_executable(car_editor
     main.cpp
     editor_state.cpp
+    editor_style.cpp
     editor_ui.cpp
 )
 

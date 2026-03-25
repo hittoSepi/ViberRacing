@@ -137,13 +137,14 @@ void drawAtmospherePanel(EditorState& state) {
 }
 
 void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLayout& layout) {
+    const EditorStyle& style = state.style;
     ImGui::SetCursorScreenPos(layout.topBarPos);
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.17f, 0.22f, 0.96f));
-    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.20f, 0.27f, 0.35f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.28f, 0.37f, 0.48f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.24f, 0.32f, 0.42f, 1.0f));
-    ImGui::PushStyleColor(ImGuiCol_PopupBg, ImVec4(0.10f, 0.13f, 0.17f, 0.98f));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.92f, 0.94f, 0.96f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.topBarBg);
+    ImGui::PushStyleColor(ImGuiCol_Button, style.button);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, style.buttonHovered);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.buttonActive);
+    ImGui::PushStyleColor(ImGuiCol_PopupBg, style.popupBg);
+    ImGui::PushStyleColor(ImGuiCol_Text, style.text);
     ImGui::BeginChild("TopBar", layout.topBarSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::SetCursorPosY(14.0f);
 
@@ -217,9 +218,10 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
 }
 
 void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
+    const EditorStyle& style = state.style;
     ImGui::SetCursorScreenPos(layout.viewportPos);
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.05f, 0.07f, 0.10f, 0.16f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.35f, 0.47f, 0.60f, 0.45f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.viewportBg);
+    ImGui::PushStyleColor(ImGuiCol_Border, style.viewportBorder);
     ImGui::BeginChild("ViewportFrame", layout.viewportSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::TextDisabled("VIEWPORT");
     ImGui::Separator();
@@ -239,10 +241,11 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
 } // namespace
 
 void drawEditorShell(EditorState& state, const std::string& partsJson, const EditorLayout& layout) {
+    const EditorStyle& style = state.style;
     ImGui::SetNextWindowPos(layout.boardPos, ImGuiCond_Always);
     ImGui::SetNextWindowSize(layout.boardSize, ImGuiCond_Always);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0.10f, 0.15f, 0.23f, 0.98f));
-    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.24f, 0.34f, 0.50f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_WindowBg, style.boardBg);
+    ImGui::PushStyleColor(ImGuiCol_Border, style.boardBorder);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -258,10 +261,10 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
     drawViewportFrame(state, layout);
 
     ImGui::SetCursorScreenPos(layout.sidebarPos);
-    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.15f, 0.19f, 0.95f));
-    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.20f, 0.29f, 0.39f, 0.90f));
-    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.28f, 0.39f, 0.52f, 0.95f));
-    ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.24f, 0.34f, 0.46f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, style.sidebarBg);
+    ImGui::PushStyleColor(ImGuiCol_Header, style.header);
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, style.headerHovered);
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive, style.headerActive);
     ImGui::BeginChild("Sidebar", layout.sidebarSize, false, ImGuiWindowFlags_NoScrollbar);
     ImGui::TextDisabled("CURRENT VIEW");
     if (ImGui::Selectable("Car Builder", state.activeView == SidebarView::CarBuilder)) {
@@ -281,7 +284,7 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
 
     if (state.showSimulation) {
         ImGui::SetCursorScreenPos(layout.simPos);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.15f, 0.19f, 0.95f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, style.panelBg);
         ImGui::BeginChild("Simulation", layout.simSize, false, ImGuiWindowFlags_NoScrollbar);
         ImGui::TextDisabled("SIMULATION");
         ImGui::Separator();
@@ -292,7 +295,7 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
 
     if (state.showControls) {
         ImGui::SetCursorScreenPos(layout.controlsPos);
-        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.12f, 0.15f, 0.19f, 0.95f));
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, style.panelBg);
         ImGui::BeginChild("Controls", layout.controlsSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::TextDisabled("CONTROLS");
         ImGui::Separator();

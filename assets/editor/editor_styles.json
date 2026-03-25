@@ -1,0 +1,36 @@
+{
+  "layout": {
+    "shellMargin": 0.0,
+    "innerMargin": 10.0,
+    "gap": 10.0,
+    "minBoardWidth": 640.0,
+    "minBoardHeight": 420.0,
+    "sidebarWidthRatio": 0.23,
+    "sidebarMinWidth": 230.0,
+    "sidebarMaxWidth": 300.0,
+    "topBarHeight": 52.0,
+    "simHeightRatio": 0.28,
+    "simMinHeight": 150.0,
+    "simMaxHeight": 210.0,
+    "controlsWidth": 220.0,
+    "controlsHeight": 110.0,
+    "controlsInset": 12.0
+  },
+  "colors": {
+    "boardBg": [0.10, 0.15, 0.23, 0.00],
+    "boardBorder": [0.24, 0.34, 0.50, 0.00],
+    "topBarBg": [0.13, 0.17, 0.22, 0.96],
+    "sidebarBg": [0.12, 0.15, 0.19, 0.95],
+    "panelBg": [0.12, 0.15, 0.19, 0.95],
+    "viewportBg": [0.05, 0.07, 0.10, 0.00],
+    "viewportBorder": [0.35, 0.47, 0.60, 0.45],
+    "button": [0.20, 0.27, 0.35, 1.00],
+    "buttonHovered": [0.28, 0.37, 0.48, 1.00],
+    "buttonActive": [0.24, 0.32, 0.42, 1.00],
+    "popupBg": [0.10, 0.13, 0.17, 0.98],
+    "text": [0.92, 0.94, 0.96, 1.00],
+    "header": [0.20, 0.29, 0.39, 0.90],
+    "headerHovered": [0.28, 0.39, 0.52, 0.95],
+    "headerActive": [0.24, 0.34, 0.46, 1.00]
+  }
+}

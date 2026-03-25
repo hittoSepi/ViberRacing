@@ -7,6 +7,7 @@
 #endif
 
 #include "editor_state.hpp"
+#include "editor_style.hpp"
 #include "editor_ui.hpp"
 
 #include "core/window.hpp"
@@ -148,6 +149,7 @@ int main() {
 
     car_editor::EditorState state;
     state.program = program;
+    state.style = car_editor::loadEditorStyle("assets/editor/editor_styles.json");
     initEditorState(state, partsJson);
 
     auto* glfwWindow = window.getHandle();
@@ -171,7 +173,7 @@ int main() {
         renderPreviewScene(state, window, dt);
 
         imguiRenderer.beginFrame();
-        const car_editor::EditorLayout layout = car_editor::computeLayout(ImGui::GetIO().DisplaySize);
+        const car_editor::EditorLayout layout = car_editor::computeLayout(ImGui::GetIO().DisplaySize, state.style);
         car_editor::drawEditorShell(state, partsJson, layout);
         imguiRenderer.endFrame();
         imguiRenderer.render();
