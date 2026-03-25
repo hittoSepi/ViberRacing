@@ -60,9 +60,11 @@ public:
     size_t getIndexCount() const { return m_indexCount; }
     
     static Mesh createCube();
+    static Mesh createBox(const vec3& size);
     static Mesh createSphere(float radius = 1.0f, u32 rings = 16, u32 sectors = 32);
     static Mesh createPlane(float width = 10.0f, float depth = 10.0f, 
                            u32 divisionsX = 1, u32 divisionsZ = 1);
+    static Mesh createCylinder(float radius, float height, u32 segments = 16);
     
     bgfx::VertexBufferHandle getVertexBuffer() const { return m_vbh; }
     bgfx::IndexBufferHandle getIndexBuffer() const { return m_ibh; }

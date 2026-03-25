@@ -289,20 +289,26 @@ bool CarBody::buildPartsFromDef(const CarDefinition& def, const std::string& par
 Mesh CarBody::buildPlaceholderMesh(CarPartSlot slot) const {
     switch (slot) {
         case CarPartSlot::Chassis:
-            return Mesh::createCube();
+            // Car body: longer and lower box
+            return Mesh::createBox({1.8f, 0.5f, 4.0f});
         case CarPartSlot::WheelFL: case CarPartSlot::WheelFR:
         case CarPartSlot::WheelRL: case CarPartSlot::WheelRR:
-            return Mesh::createSphere(0.35f, 8, 12);
+            // Cylinder wheel (tire-like)
+            return Mesh::createCylinder(0.35f, 0.25f, 16);
         case CarPartSlot::HoodFront:
-            return Mesh::createPlane(1.6f, 1.2f);
-        case CarPartSlot::BumperFront: case CarPartSlot::BumperRear:
-            return Mesh::createCube();
+            // Hood slopes down toward front
+            return Mesh::createBox({1.6f, 0.1f, 1.2f});
+        case CarPartSlot::BumperFront:
+            return Mesh::createBox({1.7f, 0.4f, 0.4f});
+        case CarPartSlot::BumperRear:
+            return Mesh::createBox({1.7f, 0.4f, 0.4f});
         case CarPartSlot::Roof:
-            return Mesh::createPlane(1.5f, 1.4f);
+            return Mesh::createBox({1.4f, 0.1f, 1.8f});
         case CarPartSlot::Spoiler:
-            return Mesh::createCube();
+            // Wing-like shape
+            return Mesh::createBox({1.6f, 0.15f, 0.4f});
         default:
-            return Mesh::createCube();
+            return Mesh::createBox({1.0f, 1.0f, 1.0f});
     }
 }
 

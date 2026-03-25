@@ -138,42 +138,60 @@ void Mesh::submit(bgfx::ViewId viewId, bgfx::ProgramHandle program,
 }
 
 Mesh Mesh::createCube() {
+    return createBox({1.0f, 1.0f, 1.0f});
+}
+
+Mesh Mesh::createBox(const vec3& size) {
     Mesh mesh;
     
+    vec3 h = size * 0.5f; // half extents
+    
     std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {}, {}},
-        {{ 0.5f, -0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {}, {}},
-        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {}, {}},
-        {{-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {}, {}},
-        {{ 0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
-        {{ 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
-        {{ 0.5f, -0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
-        {{ 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
-        {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f,-1.0f}, {0.0f, 0.0f}, {}, {}},
-        {{-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f,-1.0f}, {1.0f, 0.0f}, {}, {}},
-        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f,-1.0f}, {1.0f, 1.0f}, {}, {}},
-        {{ 0.5f, -0.5f, -0.5f}, {0.0f, 0.0f,-1.0f}, {0.0f, 1.0f}, {}, {}},
-        {{-0.5f, -0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
-        {{-0.5f,  0.5f,  0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
-        {{-0.5f,  0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
-        {{-0.5f, -0.5f, -0.5f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
-        {{-0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
-        {{ 0.5f,  0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
-        {{ 0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
-        {{-0.5f,  0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
-        {{-0.5f, -0.5f, -0.5f}, {0.0f,-1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
-        {{ 0.5f, -0.5f, -0.5f}, {0.0f,-1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
-        {{ 0.5f, -0.5f,  0.5f}, {0.0f,-1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
-        {{-0.5f, -0.5f,  0.5f}, {0.0f,-1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Front (+Z)
+        {{-h.x, -h.y,  h.z}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h.x, -h.y,  h.z}, {0.0f, 0.0f, 1.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h.x,  h.y,  h.z}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h.x,  h.y,  h.z}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}, {}, {}},
+        // Right (+X)
+        {{ h.x, -h.y, -h.z}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h.x,  h.y, -h.z}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h.x, -h.y,  h.z}, {1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{ h.x,  h.y,  h.z}, {1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Back (-Z)
+        {{-h.x, -h.y, -h.z}, {0.0f, 0.0f,-1.0f}, {0.0f, 0.0f}, {}, {}},
+        {{-h.x,  h.y, -h.z}, {0.0f, 0.0f,-1.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h.x,  h.y, -h.z}, {0.0f, 0.0f,-1.0f}, {1.0f, 1.0f}, {}, {}},
+        {{ h.x, -h.y, -h.z}, {0.0f, 0.0f,-1.0f}, {0.0f, 1.0f}, {}, {}},
+        // Left (-X)
+        {{-h.x, -h.y,  h.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{-h.x,  h.y,  h.z}, {-1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{-h.x,  h.y, -h.z}, {-1.0f, 0.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h.x, -h.y, -h.z}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Top (+Y)
+        {{-h.x,  h.y,  h.z}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h.x,  h.y,  h.z}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h.x,  h.y, -h.z}, {0.0f, 1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h.x,  h.y, -h.z}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
+        // Bottom (-Y)
+        {{-h.x, -h.y, -h.z}, {0.0f,-1.0f, 0.0f}, {0.0f, 0.0f}, {}, {}},
+        {{ h.x, -h.y, -h.z}, {0.0f,-1.0f, 0.0f}, {1.0f, 0.0f}, {}, {}},
+        {{ h.x, -h.y,  h.z}, {0.0f,-1.0f, 0.0f}, {1.0f, 1.0f}, {}, {}},
+        {{-h.x, -h.y,  h.z}, {0.0f,-1.0f, 0.0f}, {0.0f, 1.0f}, {}, {}},
     };
     
     std::vector<u32> indices = {
-        0, 1, 2, 0, 2, 3,
-        4, 5, 6, 5, 7, 6,
-        8, 9, 10, 8, 10, 11,
-        12, 13, 14, 12, 14, 15,
-        16, 17, 18, 16, 18, 19,
-        20, 21, 22, 20, 22, 23
+        // Front (+Z) - CCW
+        0, 2, 1, 0, 3, 2,
+        // Right (+X) - CCW
+        4, 6, 5, 5, 6, 7,
+        // Back (-Z) - CCW
+        8, 10, 9, 8, 11, 10,
+        // Left (-X) - CCW
+        12, 14, 13, 12, 15, 14,
+        // Top (+Y) - CCW
+        16, 18, 17, 16, 19, 18,
+        // Bottom (-Y) - CCW
+        20, 22, 21, 20, 23, 22
     };
     
     mesh.create(vertices, indices);
@@ -212,8 +230,8 @@ Mesh Mesh::createSphere(float radius, u32 rings, u32 sectors) {
             u32 i2 = (r + 1) * sectors + (s + 1);
             u32 i3 = (r + 1) * sectors + s;
             
-            indices.push_back(i0); indices.push_back(i2); indices.push_back(i1);
-            indices.push_back(i0); indices.push_back(i3); indices.push_back(i2);
+            indices.push_back(i0); indices.push_back(i1); indices.push_back(i2);
+            indices.push_back(i0); indices.push_back(i2); indices.push_back(i3);
         }
     }
     
@@ -258,9 +276,122 @@ Mesh Mesh::createPlane(float width, float depth, u32 divisionsX, u32 divisionsZ)
             u32 i2 = i0 + divisionsX + 1;
             u32 i3 = i2 + 1;
             
-            indices.push_back(i0); indices.push_back(i2); indices.push_back(i1);
-            indices.push_back(i1); indices.push_back(i2); indices.push_back(i3);
+            indices.push_back(i0); indices.push_back(i1); indices.push_back(i2);
+            indices.push_back(i1); indices.push_back(i3); indices.push_back(i2);
         }
+    }
+    
+    mesh.create(vertices, indices);
+    return mesh;
+}
+
+Mesh Mesh::createCylinder(float radius, float height, u32 segments) {
+    Mesh mesh;
+    
+    std::vector<Vertex> vertices;
+    std::vector<u32> indices;
+    
+    float halfHeight = height * 0.5f;
+    
+    // Side vertices
+    for (u32 i = 0; i <= segments; ++i) {
+        float angle = 2.0f * PI * i / segments;
+        float x = std::cos(angle) * radius;
+        float z = std::sin(angle) * radius;
+        vec3 normal = glm::normalize(vec3(x, 0.0f, z));
+        
+        // Top ring
+        Vertex vTop;
+        vTop.position = vec3(x, halfHeight, z);
+        vTop.normal = normal;
+        vTop.texCoord = vec2(i / static_cast<float>(segments), 1.0f);
+        vTop.tangent = vec3(-normal.z, 0.0f, normal.x);
+        vTop.bitangent = vec3(0.0f, 1.0f, 0.0f);
+        vertices.push_back(vTop);
+        
+        // Bottom ring
+        Vertex vBot;
+        vBot.position = vec3(x, -halfHeight, z);
+        vBot.normal = normal;
+        vBot.texCoord = vec2(i / static_cast<float>(segments), 0.0f);
+        vBot.tangent = vec3(-normal.z, 0.0f, normal.x);
+        vBot.bitangent = vec3(0.0f, 1.0f, 0.0f);
+        vertices.push_back(vBot);
+    }
+    
+    // Side indices (CCW)
+    for (u32 i = 0; i < segments; ++i) {
+        u32 i0 = i * 2;
+        u32 i1 = i0 + 1;
+        u32 i2 = i0 + 2;
+        u32 i3 = i0 + 3;
+        
+        indices.push_back(i0); indices.push_back(i2); indices.push_back(i1);
+        indices.push_back(i1); indices.push_back(i2); indices.push_back(i3);
+    }
+    
+    // Top cap center and ring vertices
+    u32 topCenterIdx = static_cast<u32>(vertices.size());
+    Vertex topCenter;
+    topCenter.position = vec3(0.0f, halfHeight, 0.0f);
+    topCenter.normal = vec3(0.0f, 1.0f, 0.0f);
+    topCenter.texCoord = vec2(0.5f, 0.5f);
+    topCenter.tangent = vec3(1.0f, 0.0f, 0.0f);
+    topCenter.bitangent = vec3(0.0f, 0.0f, -1.0f);
+    vertices.push_back(topCenter);
+    
+    u32 topRingStart = static_cast<u32>(vertices.size());
+    for (u32 i = 0; i <= segments; ++i) {
+        float angle = 2.0f * PI * i / segments;
+        float x = std::cos(angle) * radius;
+        float z = std::sin(angle) * radius;
+        
+        Vertex v;
+        v.position = vec3(x, halfHeight, z);
+        v.normal = vec3(0.0f, 1.0f, 0.0f);
+        v.texCoord = vec2(x / radius * 0.5f + 0.5f, z / radius * 0.5f + 0.5f);
+        v.tangent = vec3(1.0f, 0.0f, 0.0f);
+        v.bitangent = vec3(0.0f, 0.0f, -1.0f);
+        vertices.push_back(v);
+    }
+    
+    // Top cap indices (CCW)
+    for (u32 i = 0; i < segments; ++i) {
+        indices.push_back(topCenterIdx);
+        indices.push_back(topRingStart + i);
+        indices.push_back(topRingStart + i + 1);
+    }
+    
+    // Bottom cap center and ring vertices
+    u32 botCenterIdx = static_cast<u32>(vertices.size());
+    Vertex botCenter;
+    botCenter.position = vec3(0.0f, -halfHeight, 0.0f);
+    botCenter.normal = vec3(0.0f, -1.0f, 0.0f);
+    botCenter.texCoord = vec2(0.5f, 0.5f);
+    botCenter.tangent = vec3(1.0f, 0.0f, 0.0f);
+    botCenter.bitangent = vec3(0.0f, 0.0f, 1.0f);
+    vertices.push_back(botCenter);
+    
+    u32 botRingStart = static_cast<u32>(vertices.size());
+    for (u32 i = 0; i <= segments; ++i) {
+        float angle = 2.0f * PI * i / segments;
+        float x = std::cos(angle) * radius;
+        float z = std::sin(angle) * radius;
+        
+        Vertex v;
+        v.position = vec3(x, -halfHeight, z);
+        v.normal = vec3(0.0f, -1.0f, 0.0f);
+        v.texCoord = vec2(x / radius * 0.5f + 0.5f, z / radius * 0.5f + 0.5f);
+        v.tangent = vec3(1.0f, 0.0f, 0.0f);
+        v.bitangent = vec3(0.0f, 0.0f, 1.0f);
+        vertices.push_back(v);
+    }
+    
+    // Bottom cap indices (CW for correct facing when looking from below, but we want CCW)
+    for (u32 i = 0; i < segments; ++i) {
+        indices.push_back(botCenterIdx);
+        indices.push_back(botRingStart + i + 1);
+        indices.push_back(botRingStart + i);
     }
     
     mesh.create(vertices, indices);
