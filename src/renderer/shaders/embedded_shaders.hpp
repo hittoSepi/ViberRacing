@@ -7,6 +7,9 @@ namespace viber {
 // Load basic color shader (requires compiled .bin files)
 bgfx::ProgramHandle createBasicShader();
 
+// Load mesh preview shader for POSITION/NORMAL meshes.
+bgfx::ProgramHandle createMeshShader();
+
 // Load textured shader (requires compiled .bin files)
 bgfx::ProgramHandle createTexturedShader();
 

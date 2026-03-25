@@ -60,6 +60,14 @@ EditorStyle loadEditorStyle(const std::string& path) {
         style.controlsWidth = getFloat(layout, "controlsWidth", style.controlsWidth);
         style.controlsHeight = getFloat(layout, "controlsHeight", style.controlsHeight);
         style.controlsInset = getFloat(layout, "controlsInset", style.controlsInset);
+        style.panelPaddingX = getFloat(layout, "panelPaddingX", style.panelPaddingX);
+        style.panelPaddingY = getFloat(layout, "panelPaddingY", style.panelPaddingY);
+        style.sidebarPaddingX = getFloat(layout, "sidebarPaddingX", style.sidebarPaddingX);
+        style.sidebarPaddingY = getFloat(layout, "sidebarPaddingY", style.sidebarPaddingY);
+        style.topBarPaddingX = getFloat(layout, "topBarPaddingX", style.topBarPaddingX);
+        style.topBarPaddingY = getFloat(layout, "topBarPaddingY", style.topBarPaddingY);
+        style.viewportPaddingX = getFloat(layout, "viewportPaddingX", style.viewportPaddingX);
+        style.viewportPaddingY = getFloat(layout, "viewportPaddingY", style.viewportPaddingY);
 
         style.boardBg = getColor(colors, "boardBg", style.boardBg);
         style.boardBorder = getColor(colors, "boardBorder", style.boardBorder);

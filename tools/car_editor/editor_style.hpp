@@ -22,6 +22,14 @@ struct EditorStyle {
     float controlsWidth = 220.0f;
     float controlsHeight = 110.0f;
     float controlsInset = 12.0f;
+    float panelPaddingX = 8.0f;
+    float panelPaddingY = 8.0f;
+    float sidebarPaddingX = 8.0f;
+    float sidebarPaddingY = 8.0f;
+    float topBarPaddingX = 8.0f;
+    float topBarPaddingY = 8.0f;
+    float viewportPaddingX = 8.0f;
+    float viewportPaddingY = 8.0f;
 
     ImVec4 boardBg{0.10f, 0.15f, 0.23f, 0.0f};
     ImVec4 boardBorder{0.24f, 0.34f, 0.50f, 0.0f};

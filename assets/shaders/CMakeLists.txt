@@ -62,6 +62,7 @@ endif()
 set(SHADERS
     vs_basic
     fs_basic
+    vs_mesh
     vs_textured
     fs_textured
     vs_atmosphere

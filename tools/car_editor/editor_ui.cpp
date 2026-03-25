@@ -145,8 +145,10 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, style.buttonActive);
     ImGui::PushStyleColor(ImGuiCol_PopupBg, style.popupBg);
     ImGui::PushStyleColor(ImGuiCol_Text, style.text);
-    ImGui::BeginChild("TopBar", layout.topBarSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-    ImGui::SetCursorPosY(14.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.topBarPaddingX, style.topBarPaddingY));
+    ImGui::BeginChild("TopBar", layout.topBarSize, true,
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse);
 
     if (ImGui::Button("File")) {
         ImGui::OpenPopup("FileMenu");
@@ -214,6 +216,7 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
     }
 
     ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor(6);
 }
 
@@ -222,7 +225,10 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
     ImGui::SetCursorScreenPos(layout.viewportPos);
     ImGui::PushStyleColor(ImGuiCol_ChildBg, style.viewportBg);
     ImGui::PushStyleColor(ImGuiCol_Border, style.viewportBorder);
-    ImGui::BeginChild("ViewportFrame", layout.viewportSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.viewportPaddingX, style.viewportPaddingY));
+    ImGui::BeginChild("ViewportFrame", layout.viewportSize, true,
+        ImGuiWindowFlags_NoScrollbar |
+        ImGuiWindowFlags_NoScrollWithMouse);
     ImGui::TextDisabled("VIEWPORT");
     ImGui::Separator();
     ImGui::Text("Drag to orbit");
@@ -235,6 +241,7 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
     ImGui::SameLine();
     ImGui::Text("Time %.0f%%", state.timeOfDay * 100.0f);
     ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
 }
 
@@ -265,7 +272,8 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
     ImGui::PushStyleColor(ImGuiCol_Header, style.header);
     ImGui::PushStyleColor(ImGuiCol_HeaderHovered, style.headerHovered);
     ImGui::PushStyleColor(ImGuiCol_HeaderActive, style.headerActive);
-    ImGui::BeginChild("Sidebar", layout.sidebarSize, false, ImGuiWindowFlags_NoScrollbar);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.sidebarPaddingX, style.sidebarPaddingY));
+    ImGui::BeginChild("Sidebar", layout.sidebarSize, true, ImGuiWindowFlags_NoScrollbar);
     ImGui::TextDisabled("CURRENT VIEW");
     if (ImGui::Selectable("Car Builder", state.activeView == SidebarView::CarBuilder)) {
         state.activeView = SidebarView::CarBuilder;
@@ -280,29 +288,36 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
         drawAtmospherePanel(state);
     }
     ImGui::EndChild();
+    ImGui::PopStyleVar();
     ImGui::PopStyleColor(4);
 
     if (state.showSimulation) {
         ImGui::SetCursorScreenPos(layout.simPos);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, style.panelBg);
-        ImGui::BeginChild("Simulation", layout.simSize, false, ImGuiWindowFlags_NoScrollbar);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.panelPaddingX, style.panelPaddingY));
+        ImGui::BeginChild("Simulation", layout.simSize, true, ImGuiWindowFlags_NoScrollbar);
         ImGui::TextDisabled("SIMULATION");
         ImGui::Separator();
         drawDamagePanel(state);
         ImGui::EndChild();
+        ImGui::PopStyleVar();
         ImGui::PopStyleColor();
     }
 
     if (state.showControls) {
         ImGui::SetCursorScreenPos(layout.controlsPos);
         ImGui::PushStyleColor(ImGuiCol_ChildBg, style.panelBg);
-        ImGui::BeginChild("Controls", layout.controlsSize, false, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.panelPaddingX, style.panelPaddingY));
+        ImGui::BeginChild("Controls", layout.controlsSize, true,
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::TextDisabled("CONTROLS");
         ImGui::Separator();
         ImGui::Text("Left Mouse: Orbit");
         ImGui::Text("Scroll: Zoom");
         ImGui::Text("Use View menu for toggles");
         ImGui::EndChild();
+        ImGui::PopStyleVar();
         ImGui::PopStyleColor();
     }
 

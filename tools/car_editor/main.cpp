@@ -139,9 +139,9 @@ int main() {
     ImGuiRenderer imguiRenderer;
     imguiRenderer.init(window.getHandle());
 
-    const bgfx::ProgramHandle program = createBasicShader();
+    const bgfx::ProgramHandle program = createMeshShader();
     if (!bgfx::isValid(program)) {
-        spdlog::error("Failed to load basic shader");
+        spdlog::error("Failed to load mesh shader");
         return 1;
     }
 

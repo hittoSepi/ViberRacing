@@ -1,7 +1,7 @@
 {
   "layout": {
     "shellMargin": 0.0,
-    "innerMargin": 10.0,
+    "innerMargin": 0.0,
     "gap": 10.0,
     "minBoardWidth": 640.0,
     "minBoardHeight": 420.0,
@@ -14,7 +14,15 @@
     "simMaxHeight": 210.0,
     "controlsWidth": 220.0,
     "controlsHeight": 110.0,
-    "controlsInset": 12.0
+    "controlsInset": 12.0,
+    "panelPaddingX": 8.0,
+    "panelPaddingY": 8.0,
+    "sidebarPaddingX": 10.0,
+    "sidebarPaddingY": 10.0,
+    "topBarPaddingX": 10.0,
+    "topBarPaddingY": 10.0,
+    "viewportPaddingX": 10.0,
+    "viewportPaddingY": 10.0
   },
   "colors": {
     "boardBg": [0.10, 0.15, 0.23, 0.00],
