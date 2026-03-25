@@ -5,7 +5,10 @@ add_library(vr_networking STATIC
     sync.cpp
 )
 
-target_include_directories(vr_networking PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
+target_include_directories(vr_networking PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
+    ${CMAKE_SOURCE_DIR}/third_party/enet/include
+)
 
 target_link_libraries(vr_networking PUBLIC
     vr_core

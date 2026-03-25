@@ -1,36 +1,45 @@
-#pragma once
-
-#include "core/types.hpp"
+#include "game/track_editor/terrain_tool.hpp"
+#include "game/track_editor/editor.hpp"
+#include <spdlog/spdlog.h>
 
 namespace viber {
-    class TrackEditor;
-    class Renderer;
+
+TerrainTool::TerrainTool(TrackEditor* editor)
+    : m_editor(editor)
+{
 }
 
-class TerrainTool {
-public:
-    enum class BrushMode {
-        Raise,
-        Lower,
-        Smooth,
-        Flatten
-    };
+void TerrainTool::onActivate()
+{
+    spdlog::info("Terrain tool activated");
+}
+
+void TerrainTool::onDeactivate()
+{
+}
+
+void TerrainTool::update(const vec3& cursorPos, bool isMouseDown, bool isRightClick)
+{
+    m_brushPosition = cursorPos;
     
-    explicit TerrainTool(viber::TrackEditor* editor);
-    
-    void onActivate();
-    void onDeactivate();
-    
-    void update(const viber::vec3& cursorPos, bool isMouseDown, bool isRightClick);
-    void render(viber::Renderer& renderer);
-    
-    void setBrushMode(BrushMode mode);
-    BrushMode getBrushMode() const { return m_mode; }
-    
-private:
-    void applyBrush(const viber::vec3& position, BrushMode mode);
-    
-    viber::TrackEditor* m_editor = nullptr;
-    viber::vec3 m_brushPosition{0.0f};
-    BrushMode m_mode = BrushMode::Raise;
-};
+    if (isMouseDown) {
+        applyBrush(cursorPos, m_mode);
+    }
+}
+
+void TerrainTool::render(Renderer& renderer)
+{
+    // Render brush preview
+}
+
+void TerrainTool::setBrushMode(BrushMode mode)
+{
+    m_mode = mode;
+}
+
+void TerrainTool::applyBrush(const vec3& position, BrushMode mode)
+{
+    // Apply terrain modification
+}
+
+}

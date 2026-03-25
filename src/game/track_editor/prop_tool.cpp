@@ -1,5 +1,5 @@
-#include "prop_tool.hpp"
-#include "editor.hpp"
+#include "game/track_editor/prop_tool.hpp"
+#include "game/track_editor/editor.hpp"
 #include <spdlog/spdlog.h>
 
 namespace viber {

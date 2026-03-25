@@ -1,24 +1,40 @@
-#pragma once
-
-#include "core/types.hpp"
+#include "game/track_editor/road_tool.hpp"
+#include "game/track_editor/editor.hpp"
+#include <spdlog/spdlog.h>
 
 namespace viber {
-    class TrackEditor;
+
+RoadTool::RoadTool(TrackEditor* editor)
+    : m_editor(editor)
+{
 }
 
-class RoadTool {
-public:
-    explicit RoadTool(viber::TrackEditor* editor);
-    
-    void onActivate();
-    void onDeactivate();
-    
-    void update(const viber::vec3& cursorPos, bool isMouseDown, bool isRightClick);
-    void render(class viber::Renderer& renderer);
-    
-    void setRoadWidth(float width);
-    
-private:
-    viber::TrackEditor* m_editor = nullptr;
-    bool m_wasMouseDown = false;
-};
+void RoadTool::onActivate()
+{
+    spdlog::info("Road tool activated");
+}
+
+void RoadTool::onDeactivate()
+{
+}
+
+void RoadTool::update(const vec3& cursorPos, bool isMouseDown, bool isRightClick)
+{
+    if (isMouseDown && !m_wasMouseDown) {
+        // Add control point
+        m_controlPoints.push_back(cursorPos);
+    }
+    m_wasMouseDown = isMouseDown;
+}
+
+void RoadTool::render(Renderer& renderer)
+{
+    // Render road preview
+}
+
+void RoadTool::setRoadWidth(float width)
+{
+    m_roadWidth = width;
+}
+
+}

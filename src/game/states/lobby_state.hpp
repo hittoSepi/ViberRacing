@@ -1,6 +1,6 @@
 #pragma once
 
-#include "states/state.hpp"
+#include "game/states/state.hpp"
 #include "renderer/camera.hpp"
 #include "networking/p2p_host.hpp"
 #include "networking/p2p_client.hpp"

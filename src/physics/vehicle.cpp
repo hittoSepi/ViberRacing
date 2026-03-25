@@ -207,11 +207,11 @@ void Vehicle::updateState() {
     m_state.speedKmh = m_state.speed * 3.6f;
     
     for (int i = 0; i < 4; ++i) {
-        m_state.wheelSuspensionLength[i] = m_vehicle->getSuspensionLength(i);
-        m_state.wheelOnGround[i] = m_vehicle->getWheelInfo(i).m_raycastInfo.m_isInContact;
+        const btWheelInfo& wheelInfo = m_vehicle->getWheelInfo(i);
+        m_state.wheelSuspensionLength[i] = wheelInfo.m_raycastInfo.m_suspensionLength;
+        m_state.wheelOnGround[i] = wheelInfo.m_raycastInfo.m_isInContact;
         
-        btVector3 wheelVel = m_vehicle->getWheelInfo(i).m_deltaVelocity;
-        m_state.lateralSlip[i] = std::abs(m_vehicle->getWheelInfo(i).m_skidInfo);
+        m_state.lateralSlip[i] = std::abs(wheelInfo.m_skidInfo);
     }
 }
 
@@ -223,7 +223,8 @@ void Vehicle::applyTireForces() {
         
         if (!wheelInfo.m_raycastInfo.m_isInContact) continue;
         
-        float normalForce = wheelInfo.m_raycastInfo.m_suspensionForce;
+        // Calculate suspension force from wheel info
+        float normalForce = wheelInfo.m_wheelsSuspensionForce;
         
         btVector3 wheelForward = wheelInfo.m_raycastInfo.m_wheelDirectionWS;
         btVector3 wheelAxle = wheelInfo.m_raycastInfo.m_wheelAxleWS;

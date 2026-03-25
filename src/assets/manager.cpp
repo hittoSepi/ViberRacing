@@ -153,12 +153,12 @@ void AssetManager::releaseShader(AssetHandle<Shader> handle) {
     m_shaders.erase(handle);
 }
 
-bool AssetManager::isLoaded(AssetHandle<Mesh> handle) const {
+bool AssetManager::isMeshLoaded(AssetHandle<Mesh> handle) const {
     auto it = m_meshes.find(handle);
     return it != m_meshes.end() && it->second.info.loaded;
 }
 
-bool AssetManager::isLoaded(AssetHandle<Texture> handle) const {
+bool AssetManager::isTextureLoaded(AssetHandle<Texture> handle) const {
     auto it = m_textures.find(handle);
     return it != m_textures.end() && it->second.info.loaded;
 }

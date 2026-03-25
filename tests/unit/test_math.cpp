@@ -1,6 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "utils/math.hpp"
 #include <cmath>
+
+using namespace viber;
+using Catch::Approx;
 
 TEST_CASE("Math utilities", "[math]") {
     SECTION("lerp") {

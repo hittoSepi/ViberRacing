@@ -1,6 +1,16 @@
+#if defined(__linux__)
+#define GLFW_EXPOSE_NATIVE_WAYLAND
+#define GLFW_EXPOSE_NATIVE_X11
+#endif
+
 #include "window.hpp"
-#include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
+#include <GLFW/glfw3.h>
+
+#if defined(__linux__)
+#include <GLFW/glfw3native.h>
+#include <wayland-client.h>
+#endif
 
 namespace viber {
 
@@ -9,14 +19,12 @@ Window::Window(const WindowConfig& config) : m_config(config) {
         throw std::runtime_error("Failed to initialize GLFW");
     }
     
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // Disable OpenGL context creation - bgfx will create its own
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_SAMPLES, config.samples);
-    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
-#ifdef __APPLE__
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-#endif
+    // Ensure window is visible by default (important for Wayland)
+    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
     
     GLFWmonitor* monitor = nullptr;
     if (config.fullscreen) {
@@ -39,8 +47,31 @@ Window::Window(const WindowConfig& config) : m_config(config) {
         throw std::runtime_error("Failed to create GLFW window");
     }
     
-    glfwMakeContextCurrent(m_window);
-    glfwSwapInterval(config.vsync ? 1 : 0);
+    // Note: No OpenGL context is created here - bgfx handles rendering
+    
+    // Ensure window is visible (especially important for Wayland)
+    glfwShowWindow(m_window);
+    glfwFocusWindow(m_window);
+    
+    // Process events to let Wayland compositor configure the window
+    // This is critical for the surface to become mapped (visible)
+    for (int i = 0; i < 10; i++) {
+        glfwPollEvents();
+    }
+    
+#if defined(__linux__)
+    // On Wayland, force a surface commit to ensure the window becomes visible
+    if (isWayland()) {
+        struct wl_display* display = (struct wl_display*)glfwGetWaylandDisplay();
+        struct wl_surface* surface = (struct wl_surface*)glfwGetWaylandWindow(m_window);
+        if (surface && display) {
+            wl_surface_commit(surface);
+            wl_display_roundtrip(display);  // Wait for compositor to process
+            wl_display_flush(display);
+            spdlog::debug("Wayland surface committed and roundtrip done");
+        }
+    }
+#endif
     
     glfwSetWindowUserPointer(m_window, this);
     glfwSetFramebufferSizeCallback(m_window, framebufferSizeCallback);
@@ -64,6 +95,42 @@ Window::~Window() {
     glfwTerminate();
     spdlog::info("Window destroyed");
 }
+
+#if defined(__linux__)
+void* Window::getNativeDisplay() const {
+    // Try X11 first (for XWayland compatibility), then Wayland
+    void* display = glfwGetX11Display();
+    if (display) {
+        spdlog::debug("getNativeDisplay: Using X11 display = {}", display);
+        return display;
+    }
+    // Fall back to Wayland
+    display = glfwGetWaylandDisplay();
+    spdlog::debug("getNativeDisplay: Using Wayland display = {}", display);
+    return display;
+}
+
+void* Window::getNativeWindow() const {
+    if (!m_window) {
+        spdlog::error("m_window is null!");
+        return nullptr;
+    }
+    // Try X11 first (for XWayland compatibility), then Wayland
+    ::Window x11Window = glfwGetX11Window(m_window);
+    if (x11Window) {
+        spdlog::debug("getNativeWindow: Using X11 window = {}", x11Window);
+        return reinterpret_cast<void*>(x11Window);
+    }
+    // Fall back to Wayland
+    void* waylandWindow = glfwGetWaylandWindow(m_window);
+    spdlog::debug("getNativeWindow: Using Wayland window = {}", waylandWindow);
+    return waylandWindow;
+}
+
+bool Window::isWayland() const {
+    return glfwGetWaylandDisplay() != nullptr;
+}
+#endif
 
 void Window::pollEvents() {
     m_mouseDeltaX = 0.0;

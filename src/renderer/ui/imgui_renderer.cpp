@@ -4,8 +4,35 @@
 #include <bgfx/bgfx.h>
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
+#include <filesystem>
+#include <fstream>
+#include <vector>
 
 namespace viber {
+
+static std::string findFontPath() {
+    const char* candidates[] = {
+        "assets/fonts/MesloLGS NF Regular.ttf",
+        "../assets/fonts/MesloLGS NF Regular.ttf",
+        "../../assets/fonts/MesloLGS NF Regular.ttf",
+    };
+    for (const auto& path : candidates) {
+        if (std::filesystem::exists(path)) return path;
+    }
+    return "assets/fonts/MesloLGS NF Regular.ttf";
+}
+
+static std::string findShaderPath(const char* name) {
+    std::vector<std::string> candidates = {
+        std::string("assets/shaders/") + name,
+        std::string("../assets/shaders/") + name,
+        std::string("../../assets/shaders/") + name,
+    };
+    for (const auto& path : candidates) {
+        if (std::filesystem::exists(path)) return path;
+    }
+    return candidates[0];
+}
 
 ImGuiRenderer::ImGuiRenderer() = default;
 
@@ -22,7 +49,19 @@ void ImGuiRenderer::init(GLFWwindow* window) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    
+    // Load custom font
+    io.Fonts->Clear();
+    std::string fontPath = findFontPath();
+    spdlog::info("Looking for font at: {}", fontPath);
+    io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f);
+    if (io.Fonts->Fonts.empty()) {
+        spdlog::warn("Failed to load font: {}, using default", fontPath);
+        io.Fonts->AddFontDefault();
+    } else {
+        spdlog::info("Loaded font: {}", fontPath);
+    }
+    // io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Requires docking branch
     
     setupStyle();
     
@@ -36,20 +75,78 @@ void ImGuiRenderer::init(GLFWwindow* window) {
     
     m_u_texture = bgfx::createUniform("s_tex", bgfx::UniformType::Sampler);
     
+    // Build font atlas
+    io.Fonts->Build();
+    
     unsigned char* pixels;
     int width, height;
     io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
     
+    spdlog::info("Font atlas size: {}x{}, pixels: {}", width, height, pixels ? "valid" : "null");
+    
+    // Create texture with proper flags
     m_fontTexture = bgfx::createTexture2D(
         static_cast<u16>(width), static_cast<u16>(height),
-        false, 1, bgfx::TextureFormat::BGRA8,
-        0, bgfx::copy(pixels, width * height * 4)
+        false, 1, bgfx::TextureFormat::RGBA8,
+        BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_MAG_POINT,
+        bgfx::copy(pixels, width * height * 4)
     );
     
-    io.Fonts->TexID = reinterpret_cast<ImTextureID>(m_fontTexture.idx);
+    // Store texture handle as ImTextureID (pointer to handle)
+    static bgfx::TextureHandle fontHandle;
+    fontHandle = m_fontTexture;
+    io.Fonts->TexID = reinterpret_cast<ImTextureID>(&fontHandle);
+    
+    spdlog::info("Font texture created: idx={}", m_fontTexture.idx);
+    
+    // Create shader program for ImGui
+    m_program = createImGuiShader();
+    if (!bgfx::isValid(m_program)) {
+        spdlog::error("Failed to create ImGui shader program!");
+    }
     
     m_initialized = true;
     spdlog::info("ImGui initialized");
+}
+
+bgfx::ProgramHandle ImGuiRenderer::createImGuiShader() {
+    // Try to load from file first
+    std::string vsPath = findShaderPath("vs_textured.bin");
+    std::string fsPath = findShaderPath("fs_textured.bin");
+    spdlog::info("Loading ImGui shaders: {} and {}", vsPath, fsPath);
+    bgfx::ShaderHandle vs = loadShaderFromFile(vsPath.c_str());
+    bgfx::ShaderHandle fs = loadShaderFromFile(fsPath.c_str());
+    
+    if (!bgfx::isValid(vs) || !bgfx::isValid(fs)) {
+        spdlog::error("Failed to load ImGui shaders!");
+        return BGFX_INVALID_HANDLE;
+    }
+    
+    spdlog::info("Creating ImGui shader program");
+    return bgfx::createProgram(vs, fs, true);
+}
+
+bgfx::ShaderHandle ImGuiRenderer::loadShaderFromFile(const char* path) {
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        spdlog::warn("Shader file not found: {}", path);
+        return BGFX_INVALID_HANDLE;
+    }
+    
+    size_t size = file.tellg();
+    file.seekg(0, std::ios::beg);
+    
+    std::vector<uint8_t> data(size);
+    file.read(reinterpret_cast<char*>(data.data()), size);
+    
+    const bgfx::Memory* mem = bgfx::copy(data.data(), static_cast<uint32_t>(size));
+    bgfx::ShaderHandle handle = bgfx::createShader(mem);
+    
+    if (!bgfx::isValid(handle)) {
+        spdlog::error("Failed to create shader from: {}", path);
+    }
+    
+    return handle;
 }
 
 void ImGuiRenderer::shutdown() {
@@ -94,7 +191,14 @@ void ImGuiRenderer::render() {
     const bgfx::Caps* caps = bgfx::getCaps();
     {
         float ortho[16];
-        bx::mtxOrtho(ortho, 0.0f, width, height, 0.0f, 0.0f, 1000.0f, 0.0f, caps->homogeneousDepth);
+        // Simple ortho projection matrix
+        const float left = 0.0f, right = width, bottom = height, top = 0.0f, near = 0.0f, far = 1000.0f;
+        ortho[0] = 2.0f / (right - left); ortho[1] = 0.0f; ortho[2] = 0.0f; ortho[3] = 0.0f;
+        ortho[4] = 0.0f; ortho[5] = 2.0f / (top - bottom); ortho[6] = 0.0f; ortho[7] = 0.0f;
+        ortho[8] = 0.0f; ortho[9] = 0.0f; ortho[10] = 1.0f / (far - near); ortho[11] = 0.0f;
+        ortho[12] = -(right + left) / (right - left);
+        ortho[13] = -(top + bottom) / (top - bottom);
+        ortho[14] = -near / (far - near); ortho[15] = 1.0f;
         bgfx::setViewTransform(255, nullptr, ortho);
         bgfx::setViewRect(255, 0, 0, static_cast<u16>(width), static_cast<u16>(height));
     }
@@ -131,20 +235,23 @@ void ImGuiRenderer::render() {
             if (pcmd->UserCallback) {
                 pcmd->UserCallback(cmdList, pcmd);
             } else {
-                const u16 xx = static_cast<u16>(bx::max(pcmd->ClipRect.x, 0.0f));
-                const u16 yy = static_cast<u16>(bx::max(pcmd->ClipRect.y, 0.0f));
+                const u16 xx = static_cast<u16>(std::max(pcmd->ClipRect.x, 0.0f));
+                const u16 yy = static_cast<u16>(std::max(pcmd->ClipRect.y, 0.0f));
                 bgfx::setScissor(xx, yy,
-                    static_cast<u16>(bx::min(pcmd->ClipRect.z, 65535.0f) - xx),
-                    static_cast<u16>(bx::min(pcmd->ClipRect.w, 65535.0f) - yy));
+                    static_cast<u16>(std::min(pcmd->ClipRect.z, 65535.0f) - xx),
+                    static_cast<u16>(std::min(pcmd->ClipRect.w, 65535.0f) - yy));
                 
-                bgfx::setTexture(0, m_u_texture, {pcmd->TextureId ? 
-                    static_cast<u16>(reinterpret_cast<uintptr_t>(pcmd->TextureId)) : 
-                    m_fontTexture.idx});
+                ImTextureID texId = pcmd->GetTexID();
+                bgfx::TextureHandle texHandle = m_fontTexture;
+                if (texId) {
+                    // texId is a pointer to bgfx::TextureHandle
+                    texHandle = *reinterpret_cast<bgfx::TextureHandle*>(texId);
+                }
+                bgfx::setTexture(0, m_u_texture, texHandle);
                 
                 bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA);
                 
-                bgfx::submit(255, m_program, 0, 
-                    bgfx::Discard::None, idxOffset, pcmd->ElemCount);
+                bgfx::submit(255, m_program);
             }
             
             idxOffset += pcmd->ElemCount;

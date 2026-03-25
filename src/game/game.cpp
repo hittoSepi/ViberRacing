@@ -3,6 +3,10 @@
 #include "states/racing_state.hpp"
 #include "states/editor_state.hpp"
 #include "states/lobby_state.hpp"
+#include "core/window.hpp"
+#include "core/input.hpp"
+#include "renderer/renderer.hpp"
+#include "core/config.hpp"
 #include <spdlog/spdlog.h>
 
 namespace viber {
@@ -21,6 +25,9 @@ Game::~Game() {
 
 void Game::init() {
     if (m_initialized) return;
+    
+    // Initialize ImGui
+    m_ui.init(m_window.getHandle());
     
     registerState("menu", std::make_unique<MenuState>(*this));
     registerState("racing", std::make_unique<RacingState>(*this));
@@ -54,11 +61,16 @@ void Game::update(float deltaTime) {
 void Game::render() {
     if (!m_initialized) return;
     
+    m_ui.beginFrame();
+    
     m_renderer.beginFrame();
     
     if (m_currentState) {
         m_currentState->render();
     }
+    
+    m_ui.endFrame();
+    m_ui.render();
     
     m_renderer.endFrame();
 }
@@ -74,6 +86,8 @@ void Game::shutdown() {
     
     m_states.clear();
     m_currentState = nullptr;
+    
+    m_ui.shutdown();
     
     m_initialized = false;
     spdlog::info("Game shutdown");

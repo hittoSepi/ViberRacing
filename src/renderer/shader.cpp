@@ -67,7 +67,10 @@ bgfx::ShaderHandle Shader::loadShader(const std::string& path) {
 
 bgfx::UniformHandle Shader::getUniform(const std::string& name) const {
     auto it = m_uniforms.find(name);
-    return it != m_uniforms.end() ? it->second : BGFX_INVALID_HANDLE;
+    if (it != m_uniforms.end()) {
+        return it->second;
+    }
+    return BGFX_INVALID_HANDLE;
 }
 
 bgfx::UniformHandle Shader::createUniform(const std::string& name, 

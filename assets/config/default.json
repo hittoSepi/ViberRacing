@@ -12,25 +12,9 @@
         "textureQuality": 2,
         "anisotropy": 16
     },
-    "audio": {
-        "masterVolume": 1.0,
-        "musicVolume": 0.5,
-        "sfxVolume": 0.8
-    },
-    "gameplay": {
-        "difficulty": 1,
-        "laps": 3,
-        "showHints": true
-    },
     "network": {
         "port": 7777,
         "playerName": "Player",
         "maxPlayers": 8
-    },
-    "controls": {
-        "steeringSensitivity": 1.0,
-        "throttleSensitivity": 1.0,
-        "brakeSensitivity": 1.0,
-        "invertSteering": false
     }
 }

@@ -48,6 +48,12 @@ public:
     
     GLFWwindow* getHandle() const { return m_window; }
     
+#if defined(__linux__)
+    void* getNativeDisplay() const;
+    void* getNativeWindow() const;
+    bool isWayland() const;
+#endif
+    
 private:
     GLFWwindow* m_window = nullptr;
     WindowConfig m_config;

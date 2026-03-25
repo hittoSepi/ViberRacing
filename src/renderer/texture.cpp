@@ -24,11 +24,11 @@ bgfx::TextureFormat::Enum Texture::toBgfxFormat(TextureFormat format) {
         case TextureFormat::RGBA8:       return bgfx::TextureFormat::RGBA8;
         case TextureFormat::R16F:        return bgfx::TextureFormat::R16F;
         case TextureFormat::RG16F:       return bgfx::TextureFormat::RG16F;
-        case TextureFormat::RGB16F:      return bgfx::TextureFormat::RGB16F;
+        case TextureFormat::RGB16F:      return bgfx::TextureFormat::RGBA16F;  // RGB16F not available, use RGBA16F
         case TextureFormat::RGBA16F:     return bgfx::TextureFormat::RGBA16F;
         case TextureFormat::R32F:        return bgfx::TextureFormat::R32F;
         case TextureFormat::RG32F:       return bgfx::TextureFormat::RG32F;
-        case TextureFormat::RGB32F:      return bgfx::TextureFormat::RGB32F;
+        case TextureFormat::RGB32F:      return bgfx::TextureFormat::RGBA32F;  // RGB32F not available, use RGBA32F
         case TextureFormat::RGBA32F:     return bgfx::TextureFormat::RGBA32F;
         case TextureFormat::Depth:       return bgfx::TextureFormat::D32;
         case TextureFormat::DepthStencil: return bgfx::TextureFormat::D24S8;

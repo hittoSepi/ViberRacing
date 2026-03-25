@@ -1,11 +1,11 @@
 #pragma once
 
-#include "states/state.hpp"
+#include "game/states/state.hpp"
 #include "renderer/camera.hpp"
 #include "physics/world.hpp"
 #include "physics/vehicle.hpp"
-#include "entities/car.hpp"
-#include "entities/track.hpp"
+#include "game/entities/car.hpp"
+#include "game/entities/track.hpp"
 #include <memory>
 
 namespace viber {

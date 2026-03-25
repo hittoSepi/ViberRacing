@@ -33,7 +33,7 @@ void DebugDraw::init() {
 void DebugDraw::shutdown() {
     if (bgfx::isValid(m_vbh)) {
         bgfx::destroy(m_vbh);
-        m_vbh = BGFX_INVALID_HANDLE;
+        m_vbh.idx = bgfx::kInvalidHandle;
     }
     if (bgfx::isValid(m_program)) {
         bgfx::destroy(m_program);
@@ -54,7 +54,7 @@ void DebugDraw::beginFrame(const mat4& view, const mat4& projection) {
 }
 
 void DebugDraw::endFrame() {
-    if (m_vertices.empty() || !bgfx::isValid(m_program)) {
+    if (m_vertices.empty() || !bgfx::isValid(m_vbh)) {
         return;
     }
     
@@ -163,7 +163,7 @@ void DebugDraw::drawCylinder(const vec3& start, const vec3& end, float radius, c
     float step = TWO_PI / static_cast<float>(segments);
     
     vec3 axis = end - start;
-    float height = glm::length(axis);
+    [[maybe_unused]] float height = glm::length(axis);
     vec3 dir = glm::normalize(axis);
     
     vec3 up = std::abs(dir.y) < 0.99f ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);

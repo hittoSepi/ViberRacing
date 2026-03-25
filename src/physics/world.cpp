@@ -118,7 +118,7 @@ bool PhysicsWorld::raycast(const vec3& from, const vec3& to, vec3& hitPoint, vec
             callback.m_hitNormalWorld.z()
         );
         if (hitObject) {
-            *hitObject = callback.m_collisionObject;
+            *hitObject = const_cast<void*>(static_cast<const void*>(callback.m_collisionObject));
         }
         return true;
     }

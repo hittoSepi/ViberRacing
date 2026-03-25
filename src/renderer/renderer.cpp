@@ -1,9 +1,27 @@
+#if defined(__linux__)
+#define GLFW_EXPOSE_NATIVE_X11
+#endif
+
 #include "renderer.hpp"
 #include <bgfx/platform.h>
 #include <bx/bx.h>
 #include <spdlog/spdlog.h>
 #include <fstream>
 #include <vector>
+
+
+
+namespace bgfx {
+    // Define operators for bgfx handles (needed for C++20)
+    inline bool operator==(const TextureHandle& a, const TextureHandle& b) { return a.idx == b.idx; }
+    inline bool operator!=(const TextureHandle& a, const TextureHandle& b) { return a.idx != b.idx; }
+    inline bool operator==(const ShaderHandle& a, const ShaderHandle& b) { return a.idx == b.idx; }
+    inline bool operator!=(const ShaderHandle& a, const ShaderHandle& b) { return a.idx != b.idx; }
+    inline bool operator==(const ProgramHandle& a, const ProgramHandle& b) { return a.idx == b.idx; }
+    inline bool operator!=(const ProgramHandle& a, const ProgramHandle& b) { return a.idx != b.idx; }
+    inline bool operator==(const UniformHandle& a, const UniformHandle& b) { return a.idx == b.idx; }
+    inline bool operator!=(const UniformHandle& a, const UniformHandle& b) { return a.idx != b.idx; }
+}
 
 #ifndef CMAKE_BUILD_TYPE
 #define CMAKE_BUILD_TYPE "Debug"
@@ -14,8 +32,11 @@ namespace viber {
 Renderer::Renderer(Window& window) : m_window(window) {
     m_windowSize = window.getSize();
     
+    spdlog::info("Initializing renderer with window size: {}x{}", m_windowSize.x, m_windowSize.y);
+    
     bgfx::Init init;
-    init.type = bgfx::RendererType::OpenGL;
+    // Use Vulkan on Linux for better Wayland compatibility
+    init.type = bgfx::RendererType::Vulkan;
     init.vendorId = BGFX_PCI_ID_NONE;
     init.deviceId = 0;
     init.platformData.nwh = nullptr;
@@ -29,24 +50,38 @@ Renderer::Renderer(Window& window) : m_window(window) {
     
 #ifdef _WIN32
     init.platformData.nwh = glfwGetWin32Window(window.getHandle());
+    spdlog::info("Win32 platform data set");
 #elif defined(__APPLE__)
     init.platformData.nwh = glfwGetCocoaWindow(window.getHandle());
+    spdlog::info("Cocoa platform data set");
 #elif defined(__linux__)
-    init.platformData.ndt = glfwGetX11Display();
-    init.platformData.nwh = reinterpret_cast<void*>(glfwGetX11Window(window.getHandle()));
+    init.platformData.ndt = window.getNativeDisplay();
+    init.platformData.nwh = window.getNativeWindow();
+    // Detect Wayland vs X11 based on display type
+    if (window.isWayland()) {
+        init.platformData.type = bgfx::NativeWindowHandleType::Wayland;
+        spdlog::info("Wayland platform data set: type={}, display={}, window={}", 
+            (int)init.platformData.type, init.platformData.ndt, init.platformData.nwh);
+    } else {
+        init.platformData.type = bgfx::NativeWindowHandleType::Default;
+        spdlog::info("X11 platform data set: display={}, window={}", init.platformData.ndt, init.platformData.nwh);
+    }
 #endif
     
     m_init = init;
     
     if (!bgfx::init(init)) {
+        spdlog::error("bgfx::init failed - platform data: ndt={}, nwh={}", init.platformData.ndt, init.platformData.nwh);
         throw std::runtime_error("Failed to initialize bgfx");
     }
     
     bgfx::setDebug(BGFX_DEBUG_TEXT);
     
-    m_u_model = bgfx::createUniform("u_model", bgfx::UniformType::Mat4);
-    m_u_view = bgfx::createUniform("u_view", bgfx::UniformType::Mat4);
-    m_u_projection = bgfx::createUniform("u_projection", bgfx::UniformType::Mat4);
+    // Use different names to avoid conflict with bgfx internal uniforms
+    // bgfx reserves names starting with certain prefixes
+    m_u_model = bgfx::createUniform("model_mtx", bgfx::UniformType::Mat4);
+    m_u_view = bgfx::createUniform("view_mtx", bgfx::UniformType::Mat4);
+    m_u_projection = bgfx::createUniform("proj_mtx", bgfx::UniformType::Mat4);
     
     const bgfx::Caps* caps = bgfx::getCaps();
     spdlog::info("Renderer initialized: {} (vendor: {}, device: {})",
@@ -194,7 +229,7 @@ bgfx::TextureHandle Renderer::loadTexture(const std::string& path) {
     file.read(reinterpret_cast<char*>(data.data()), size);
     
     const bgfx::Memory* mem = bgfx::copy(data.data(), static_cast<u32>(size));
-    bgfx::TextureHandle handle = bgfx::createTexture(mem, 0, nullptr);
+    bgfx::TextureHandle handle = bgfx::createTexture(mem, 0, 0);
     
     if (bgfx::isValid(handle)) {
         m_loadedTextures.push_back(handle);

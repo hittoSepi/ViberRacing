@@ -12,6 +12,34 @@ Mesh::~Mesh() {
     destroy();
 }
 
+Mesh::Mesh(Mesh&& other) noexcept
+    : m_vbh(other.m_vbh)
+    , m_ibh(other.m_ibh)
+    , m_layout(other.m_layout)
+    , m_vertexCount(other.m_vertexCount)
+    , m_indexCount(other.m_indexCount) {
+    other.m_vbh.idx = bgfx::kInvalidHandle;
+    other.m_ibh.idx = bgfx::kInvalidHandle;
+    other.m_vertexCount = 0;
+    other.m_indexCount = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+    if (this != &other) {
+        destroy();
+        m_layout = other.m_layout;
+        m_vbh = other.m_vbh;
+        m_ibh = other.m_ibh;
+        m_vertexCount = other.m_vertexCount;
+        m_indexCount = other.m_indexCount;
+        other.m_vbh.idx = bgfx::kInvalidHandle;
+        other.m_ibh.idx = bgfx::kInvalidHandle;
+        other.m_vertexCount = 0;
+        other.m_indexCount = 0;
+    }
+    return *this;
+}
+
 bool Mesh::create(const std::vector<Vertex>& vertices, const std::vector<u32>& indices) {
     destroy();
     

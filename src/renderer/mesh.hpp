@@ -44,6 +44,9 @@ public:
     Mesh(const Mesh&) = delete;
     Mesh& operator=(const Mesh&) = delete;
     
+    Mesh(Mesh&& other) noexcept;
+    Mesh& operator=(Mesh&& other) noexcept;
+    
     bool create(const std::vector<Vertex>& vertices, const std::vector<u32>& indices);
     bool create(const std::vector<VertexSimple>& vertices, const std::vector<u32>& indices);
     

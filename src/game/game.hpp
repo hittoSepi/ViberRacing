@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "renderer/ui/imgui_renderer.hpp"
 #include <string>
 #include <memory>
 #include <unordered_map>
@@ -29,6 +30,7 @@ public:
     Input& getInput() { return m_input; }
     Renderer& getRenderer() { return m_renderer; }
     Config& getConfig() { return m_config; }
+    ImGuiRenderer& getUI() { return m_ui; }
     
     void registerState(const std::string& name, std::unique_ptr<GameState> state);
     
@@ -45,6 +47,8 @@ private:
     Input& m_input;
     Renderer& m_renderer;
     Config& m_config;
+    
+    ImGuiRenderer m_ui;
     
     std::unordered_map<std::string, std::unique_ptr<GameState>> m_states;
     std::vector<GameState*> m_stateStack;

@@ -1,5 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "utils/serialization.hpp"
+
+using Catch::Approx;
+
+using namespace viber;
 
 TEST_CASE("BinaryWriter", "[serialization]") {
     viber::BinaryWriter writer;

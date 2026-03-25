@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "physics/world.hpp"
+
+using Catch::Approx;
 #include "physics/vehicle.hpp"
 
 TEST_CASE("PhysicsWorld", "[physics]") {

@@ -2,7 +2,7 @@
 
 #include "core/types.hpp"
 #include "utils/spline.hpp"
-#include "entities/track.hpp"
+#include "game/entities/track.hpp"
 #include <memory>
 
 namespace viber {

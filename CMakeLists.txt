@@ -29,6 +29,7 @@ target_include_directories(vr_third_party INTERFACE
 
 add_subdirectory(${VR_THIRD_PARTY_DIR}/fmt fmt)
 add_subdirectory(${VR_THIRD_PARTY_DIR}/spdlog spdlog)
+add_subdirectory(${VR_THIRD_PARTY_DIR}/json json)
 
 add_subdirectory(${VR_THIRD_PARTY_DIR}/glfw glfw)
 
@@ -36,6 +37,7 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
 set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
+set(ASSIMP_WARNINGS_AS_ERRORS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${VR_THIRD_PARTY_DIR}/assimp assimp)
 
 set(BULLET_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
@@ -62,6 +64,7 @@ set(RMLUI_SAMPLES OFF CACHE BOOL "" FORCE)
 set(RMLUI_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(${VR_THIRD_PARTY_DIR}/RmlUi RmlUi)
 
+add_subdirectory(assets/shaders)
 add_subdirectory(src)
 
 if(VIBER_BUILD_TESTS)

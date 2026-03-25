@@ -46,8 +46,8 @@ public:
     void releaseTexture(AssetHandle<Texture> handle);
     void releaseShader(AssetHandle<Shader> handle);
     
-    bool isLoaded(AssetHandle<Mesh> handle) const;
-    bool isLoaded(AssetHandle<Texture> handle) const;
+    bool isMeshLoaded(AssetHandle<Mesh> handle) const;
+    bool isTextureLoaded(AssetHandle<Texture> handle) const;
     
     void processQueue();
     void waitForAll();

@@ -23,6 +23,8 @@ public:
 private:
     void setupKeyMappings();
     void setupStyle();
+    bgfx::ProgramHandle createImGuiShader();
+    bgfx::ShaderHandle loadShaderFromFile(const char* path);
     
     bgfx::VertexLayout m_layout;
     bgfx::ProgramHandle m_program = BGFX_INVALID_HANDLE;

@@ -1,5 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/catch_approx.hpp>
 #include "utils/spline.hpp"
+
+using Catch::Approx;
 #include <cmath>
 
 TEST_CASE("Spline", "[spline]") {

@@ -9,6 +9,8 @@
 
 namespace viber {
 
+class PhysicsWorld;
+
 struct VehicleParams {
     float mass = 1200.0f;
     float chassisWidth = 1.8f;
@@ -97,8 +99,8 @@ public:
     float getSpeed() const;
     float getSpeedKmh() const;
     
-    btRigidBody* getChassisBody() const { return m_chassisBody; }
-    btRaycastVehicle* getBulletVehicle() const { return m_vehicle; }
+    btRigidBody* getChassisBody() const { return m_chassisBody.get(); }
+    btRaycastVehicle* getBulletVehicle() const { return m_vehicle.get(); }
     
     void setTireModel(std::unique_ptr<TireModel> model);
     TireModel* getTireModel() const { return m_tireModel.get(); }

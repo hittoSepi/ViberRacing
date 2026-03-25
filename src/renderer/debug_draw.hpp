@@ -49,7 +49,7 @@ private:
     void ensureCapacity(size_t vertexCount);
     
     bgfx::VertexLayout m_layout;
-    bgfx::VertexBufferHandle m_vbh = BGFX_INVALID_HANDLE;
+    bgfx::DynamicVertexBufferHandle m_vbh = BGFX_INVALID_HANDLE;
     bgfx::ProgramHandle m_program = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle m_u_viewProj = BGFX_INVALID_HANDLE;
     
