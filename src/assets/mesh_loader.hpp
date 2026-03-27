@@ -22,6 +22,13 @@ public:
     };
     
     static bool loadWithMetadata(const std::string& path, MeshData& outData);
+    
+    // Dedicated STL loader (supports both ASCII and binary formats)
+    static bool loadSTL(const std::string& path,
+                        std::vector<Vertex>& outVertices,
+                        std::vector<u32>& outIndices);
+    
+    static bool loadSTLWithMetadata(const std::string& path, MeshData& outData);
 };
 
 }

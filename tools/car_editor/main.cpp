@@ -48,6 +48,10 @@ void initEditorState(car_editor::EditorState& state, const std::string& partsJso
     } else {
         spdlog::warn("Failed to load ground shader");
     }
+
+    state.previewTint = bgfx::createUniform("u_tintColor", bgfx::UniformType::Vec4);
+    state.previewLightDir = bgfx::createUniform("u_previewLightDir", bgfx::UniformType::Vec4);
+    state.previewViewPos = bgfx::createUniform("u_previewViewPos", bgfx::UniformType::Vec4);
 }
 
 void shutdownEditorState(car_editor::EditorState& state) {
@@ -58,6 +62,15 @@ void shutdownEditorState(car_editor::EditorState& state) {
     }
     if (bgfx::isValid(state.groundProgram)) {
         bgfx::destroy(state.groundProgram);
+    }
+    if (bgfx::isValid(state.previewTint)) {
+        bgfx::destroy(state.previewTint);
+    }
+    if (bgfx::isValid(state.previewLightDir)) {
+        bgfx::destroy(state.previewLightDir);
+    }
+    if (bgfx::isValid(state.previewViewPos)) {
+        bgfx::destroy(state.previewViewPos);
     }
 }
 
@@ -119,7 +132,43 @@ void renderPreviewScene(car_editor::EditorState& state, const Window& window, fl
         wheelTransforms[i] = chassisTransform * glm::translate(mat4{1.0f}, wheelOffsets[i]);
     }
 
-    state.carBody.render(0, state.program, chassisTransform, wheelTransforms);
+    const vec3 cameraPos{
+        state.camera.target.x + state.camera.radius * std::cos(state.camera.pitch) * std::sin(state.camera.yaw),
+        state.camera.target.y + state.camera.radius * std::sin(state.camera.pitch),
+        state.camera.target.z + state.camera.radius * std::cos(state.camera.pitch) * std::cos(state.camera.yaw)
+    };
+
+    const vec4 lightDirAmbient(glm::normalize(vec3{-0.45f, -0.85f, -0.30f}), 0.24f);
+    const vec4 viewPosSpec(cameraPos, 0.20f);
+    bgfx::setUniform(state.previewLightDir, &lightDirAmbient);
+    bgfx::setUniform(state.previewViewPos, &viewPosSpec);
+
+    const u64 previewState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |
+                             BGFX_STATE_DEPTH_TEST_LESS | BGFX_STATE_CULL_CCW | BGFX_STATE_MSAA;
+
+    for (const auto& part : state.carBody.getParts()) {
+        if (!part.mesh.isValid()) {
+            continue;
+        }
+
+        mat4 worldTransform = chassisTransform * part.localTransform;
+        vec4 tint(state.currentDef.primaryColor, 1.0f);
+
+        if (part.slot >= CarPartSlot::WheelFL && part.slot <= CarPartSlot::WheelRR) {
+            const int idx = static_cast<int>(part.slot) - static_cast<int>(CarPartSlot::WheelFL);
+            worldTransform = wheelTransforms[idx];
+            tint = vec4(0.12f, 0.12f, 0.14f, 1.0f);
+        } else if (part.slot == CarPartSlot::Spoiler) {
+            tint = vec4(state.currentDef.accentColor, 1.0f);
+        } else if (part.slot == CarPartSlot::BumperFront || part.slot == CarPartSlot::BumperRear) {
+            tint = vec4(state.currentDef.primaryColor * 0.92f, 1.0f);
+        } else if (part.slot == CarPartSlot::Roof) {
+            tint = vec4(glm::mix(state.currentDef.primaryColor, state.currentDef.accentColor, 0.15f), 1.0f);
+        }
+
+        bgfx::setUniform(state.previewTint, &tint);
+        part.mesh.submit(0, state.program, worldTransform, previewState);
+    }
 }
 
 } // namespace

@@ -17,6 +17,7 @@ namespace car_editor {
 
 enum class SidebarView {
     CarBuilder = 0,
+    VehicleInfo,
     Atmosphere
 };
 
@@ -51,12 +52,16 @@ struct EditorState {
     viber::CarBody carBody;
     viber::CarDefinition currentDef = viber::CarDefinition::makeDefault();
     viber::u32 seedInput = 42;
+    char vehicleName[64] = "Prototype 42";
 
     viber::PhysicsWorld physicsWorld;
     std::unique_ptr<viber::Vehicle> previewVehicle;
 
     OrbitCamera camera;
     bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle previewTint = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle previewLightDir = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle previewViewPos = BGFX_INVALID_HANDLE;
 
     bool dragging = false;
     double lastMouseX = 0.0;

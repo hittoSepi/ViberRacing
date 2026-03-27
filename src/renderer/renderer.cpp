@@ -131,6 +131,7 @@ Renderer::~Renderer() {
 }
 
 void Renderer::beginFrame() {
+    bgfx::setViewMode(0, bgfx::ViewMode::Sequential);
     bgfx::setViewClear(0, 
         BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH | BGFX_CLEAR_STENCIL,
         *reinterpret_cast<const u32*>(&m_clearColor), 

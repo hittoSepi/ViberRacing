@@ -4,6 +4,7 @@
 #include <bgfx/bgfx.h>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace viber {
 
@@ -16,6 +17,7 @@ public:
     Shader& operator=(const Shader&) = delete;
     
     bool loadFromFiles(const std::string& vsPath, const std::string& fsPath);
+    bool loadFromBinary(const std::vector<u8>& vsData, const std::vector<u8>& fsData);
     void destroy();
     
     bool isValid() const { return bgfx::isValid(m_program); }

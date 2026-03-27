@@ -12,25 +12,55 @@ Shader::~Shader() {
 }
 
 bool Shader::loadFromFiles(const std::string& vsPath, const std::string& fsPath) {
+    std::ifstream vsFile(vsPath, std::ios::binary | std::ios::ate);
+    std::ifstream fsFile(fsPath, std::ios::binary | std::ios::ate);
+    if (!vsFile.is_open() || !fsFile.is_open()) {
+        if (!vsFile.is_open()) {
+            spdlog::error("Failed to open shader file: {}", vsPath);
+        }
+        if (!fsFile.is_open()) {
+            spdlog::error("Failed to open shader file: {}", fsPath);
+        }
+        return false;
+    }
+
+    std::vector<u8> vsData(static_cast<size_t>(vsFile.tellg()));
+    std::vector<u8> fsData(static_cast<size_t>(fsFile.tellg()));
+    vsFile.seekg(0);
+    fsFile.seekg(0);
+    vsFile.read(reinterpret_cast<char*>(vsData.data()), static_cast<std::streamsize>(vsData.size()));
+    fsFile.read(reinterpret_cast<char*>(fsData.data()), static_cast<std::streamsize>(fsData.size()));
+
+    const bool loaded = loadFromBinary(vsData, fsData);
+    if (loaded) {
+        spdlog::info("Loaded shader: {} + {}", vsPath, fsPath);
+    }
+    return loaded;
+}
+
+bool Shader::loadFromBinary(const std::vector<u8>& vsData, const std::vector<u8>& fsData) {
     destroy();
-    
-    bgfx::ShaderHandle vs = loadShader(vsPath);
-    bgfx::ShaderHandle fs = loadShader(fsPath);
-    
+
+    if (vsData.empty() || fsData.empty()) {
+        return false;
+    }
+
+    const bgfx::Memory* vsMem = bgfx::copy(vsData.data(), static_cast<u32>(vsData.size()));
+    const bgfx::Memory* fsMem = bgfx::copy(fsData.data(), static_cast<u32>(fsData.size()));
+    bgfx::ShaderHandle vs = bgfx::createShader(vsMem);
+    bgfx::ShaderHandle fs = bgfx::createShader(fsMem);
+
     if (!bgfx::isValid(vs) || !bgfx::isValid(fs)) {
         if (bgfx::isValid(vs)) bgfx::destroy(vs);
         if (bgfx::isValid(fs)) bgfx::destroy(fs);
         return false;
     }
-    
+
     m_program = bgfx::createProgram(vs, fs, true);
-    
     if (!bgfx::isValid(m_program)) {
-        spdlog::error("Failed to create shader program: {} + {}", vsPath, fsPath);
         return false;
     }
-    
-    spdlog::info("Loaded shader: {} + {}", vsPath, fsPath);
+
     return true;
 }
 

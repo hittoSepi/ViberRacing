@@ -7,10 +7,13 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <future>
 #include <queue>
 #include <mutex>
 #include <functional>
+#include <thread>
+#include <condition_variable>
+#include <variant>
+#include <atomic>
 
 namespace viber {
 
@@ -60,6 +63,45 @@ public:
     void shutdown();
     
 private:
+    enum class RequestType {
+        Mesh,
+        Texture,
+        Shader
+    };
+
+    struct LoadRequest {
+        RequestType type;
+        AssetHandle<u32> handle;
+        std::string path;
+    };
+
+    struct MeshLoadResult {
+        std::vector<Vertex> vertices;
+        std::vector<u32> indices;
+    };
+
+    struct TextureLoadResult {
+        TextureDesc desc;
+        std::vector<u8> data;
+    };
+
+    struct ShaderLoadResult {
+        std::vector<u8> vsData;
+        std::vector<u8> fsData;
+        std::string name;
+        std::string vsPath;
+        std::string fsPath;
+    };
+
+    struct CompletedRequest {
+        RequestType type;
+        AssetHandle<u32> handle;
+        std::string path;
+        bool success = false;
+        std::string error;
+        std::variant<std::monostate, MeshLoadResult, TextureLoadResult, ShaderLoadResult> payload;
+    };
+
     template<typename T>
     struct AssetEntry {
         std::unique_ptr<T> asset;
@@ -75,11 +117,18 @@ private:
     std::unordered_map<std::string, AssetHandle<Mesh>> m_meshPathMap;
     std::unordered_map<std::string, AssetHandle<Texture>> m_texturePathMap;
     
-    std::queue<std::function<void()>> m_loadQueue;
+    std::queue<LoadRequest> m_requestQueue;
+    std::queue<CompletedRequest> m_completedQueue;
     std::mutex m_queueMutex;
+    std::condition_variable m_queueCv;
+    std::thread m_workerThread;
+    std::atomic<u32> m_pendingLoads{0};
+    bool m_stopWorker = false;
     
     std::string m_assetRoot = "assets/";
     AssetHandle<u32> m_nextHandle = 0;
+
+    void workerLoop();
 };
 
 }

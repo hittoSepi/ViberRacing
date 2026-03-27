@@ -64,7 +64,7 @@ bgfx::ProgramHandle createBasicShader() {
 }
 
 bgfx::ProgramHandle createMeshShader() {
-    return createProgramFromFiles("vs_mesh.bin", "fs_basic.bin");
+    return createProgramFromFiles("vs_mesh.bin", "fs_mesh.bin");
 }
 
 bgfx::ProgramHandle createTexturedShader() {

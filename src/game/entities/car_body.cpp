@@ -1,4 +1,5 @@
 #include "car_body.hpp"
+#include "assets/mesh_loader.hpp"
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <fstream>
@@ -7,6 +8,55 @@
 using json = nlohmann::json;
 
 namespace viber {
+
+namespace {
+
+bool tryLoadPartMesh(const std::string& meshPath, CarPartSlot slot, Mesh& outMesh) {
+    if (meshPath.empty()) {
+        return false;
+    }
+
+    MeshLoader::MeshData meshData;
+    if (!MeshLoader::loadWithMetadata(meshPath, meshData)) {
+        return false;
+    }
+
+    if (slot == CarPartSlot::Chassis) {
+        const vec3 size = meshData.maxExtents - meshData.minExtents;
+        const vec3 center{
+            (meshData.minExtents.x + meshData.maxExtents.x) * 0.5f,
+            meshData.minExtents.y,
+            (meshData.minExtents.z + meshData.maxExtents.z) * 0.5f
+        };
+
+        // Current car system assumes roughly a 4 m long body centered at origin
+        // with the bottom resting on y=0. Normalize imported chassis meshes to
+        // that space so editor camera, wheel offsets and gameplay placeholders
+        // still line up with authored assets that use different units/origins.
+        const float sourceLength = glm::max(size.z, 0.001f);
+        const float targetLength = 4.0f;
+        const float uniformScale = targetLength / sourceLength;
+
+        for (auto& vertex : meshData.vertices) {
+            vertex.position = (vertex.position - center) * uniformScale;
+        }
+
+        spdlog::info(
+            "CarBody: normalized chassis mesh {} size=({:.3f}, {:.3f}, {:.3f}) scale={:.5f}",
+            meshPath, size.x, size.y, size.z, uniformScale);
+    }
+
+    Mesh mesh;
+    if (!mesh.create(meshData.vertices, meshData.indices)) {
+        spdlog::error("CarBody: failed to create mesh from {}", meshPath);
+        return false;
+    }
+
+    outMesh = std::move(mesh);
+    return true;
+}
+
+} // namespace
 
 // ---------------------------------------------------------------------------
 // CarDefinition serialization
@@ -258,10 +308,14 @@ bool CarBody::buildPartsFromDef(const CarDefinition& def, const std::string& par
             part.localTransform = makeOffsetTransform(*jPart);
         }
 
-        // Use placeholder mesh (real mesh loading from file is deferred)
-        part.mesh = buildPlaceholderMesh(spec.slot);
-        if (!part.mesh.isValid()) {
-            spdlog::warn("CarBody: placeholder mesh failed for slot {}", static_cast<int>(spec.slot));
+        if (!tryLoadPartMesh(part.meshPath, spec.slot, part.mesh)) {
+            part.mesh = buildPlaceholderMesh(spec.slot);
+            if (!part.mesh.isValid()) {
+                spdlog::warn("CarBody: placeholder mesh failed for slot {}", static_cast<int>(spec.slot));
+            } else if (!part.meshPath.empty()) {
+                spdlog::warn("CarBody: using placeholder mesh for slot {} after load failure: {}",
+                    static_cast<int>(spec.slot), part.meshPath);
+            }
         }
 
         m_parts.push_back(std::move(part));
@@ -340,7 +394,7 @@ void CarBody::render(bgfx::ViewId viewId, bgfx::ProgramHandle program,
     if (!bgfx::isValid(program)) return;
 
     const u64 state = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |
-                      BGFX_STATE_DEPTH_TEST_LESS | BGFX_STATE_CULL_CW | BGFX_STATE_MSAA;
+                      BGFX_STATE_DEPTH_TEST_LESS | BGFX_STATE_CULL_CCW | BGFX_STATE_MSAA;
 
     for (const auto& part : m_parts) {
         if (!part.mesh.isValid()) continue;

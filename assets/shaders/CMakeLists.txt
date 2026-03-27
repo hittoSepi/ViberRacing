@@ -63,6 +63,7 @@ set(SHADERS
     vs_basic
     fs_basic
     vs_mesh
+    fs_mesh
     vs_textured
     fs_textured
     vs_atmosphere

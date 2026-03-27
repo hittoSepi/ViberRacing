@@ -2,12 +2,12 @@
   "chassis": [
     {
       "id": "sedan_a",
-      "mesh": "assets/cars/parts/chassis_sedan_a.bin",
+      "mesh": "assets/cars/parts/body/body_1.fbx",
       "compatible_with": ["sedan_a", "hatchback_b"]
     },
     {
       "id": "hatchback_b",
-      "mesh": "assets/cars/parts/chassis_hatchback_b.bin",
+      "mesh": "assets/cars/parts/body/body_2.fbx",
       "compatible_with": ["sedan_a", "hatchback_b"]
     }
   ],

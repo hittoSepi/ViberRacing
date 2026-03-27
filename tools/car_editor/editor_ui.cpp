@@ -5,11 +5,55 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdio>
 #include <string>
 
 namespace car_editor {
 
 namespace {
+
+const char* getActiveViewLabel(SidebarView view) {
+    switch (view) {
+        case SidebarView::CarBuilder: return "Car Builder";
+        case SidebarView::VehicleInfo: return "Vehicle Info";
+        case SidebarView::Atmosphere: return "Atmosphere";
+        default: return "Editor";
+    }
+}
+
+void drawMetricRow(const char* label, const std::string& value) {
+    ImGui::TextDisabled("%s", label);
+    ImGui::SameLine(160.0f);
+    ImGui::Text("%s", value.c_str());
+}
+
+std::string formatMeters(float value) {
+    char buffer[32];
+    std::snprintf(buffer, sizeof(buffer), "%.2f m", value);
+    return buffer;
+}
+
+std::string formatScalar(float value, const char* suffix) {
+    char buffer[32];
+    std::snprintf(buffer, sizeof(buffer), "%.2f%s", value, suffix);
+    return buffer;
+}
+
+std::string describeVehicle(const EditorState& state) {
+    std::string shape = state.currentDef.chassisVariant == "hatchback_b" ? "Hatchback" : "Sedan";
+    std::string wheels = state.currentDef.wheelVariants[0] == "wheel_offroad"
+        ? "off-road package"
+        : (state.currentDef.wheelVariants[0] == "wheel_sport" ? "sport package" : "standard package");
+    std::string aero = state.currentDef.spoilerVariant.empty() ? "clean rear deck" : "rear aero package";
+    return shape + " build with " + wheels + " and " + aero + ".";
+}
+
+void drawRatingBar(const char* label, float value, const ImVec4& color) {
+    ImGui::TextDisabled("%s", label);
+    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, color);
+    ImGui::ProgressBar(glm::clamp(value, 0.0f, 1.0f), ImVec2(-1.0f, 8.0f), "");
+    ImGui::PopStyleColor();
+}
 
 void drawPartSelector(EditorState& state, const std::string& partsJson) {
     auto& def = state.currentDef;
@@ -82,6 +126,84 @@ void drawPartSelector(EditorState& state, const std::string& partsJson) {
     if (changed) {
         state.carBody.setDefinition(def);
     }
+}
+
+void drawVehicleInfoPanel(EditorState& state) {
+    ImGui::TextDisabled("Identity");
+    ImGui::InputText("Car Name", state.vehicleName, IM_ARRAYSIZE(state.vehicleName));
+    ImGui::Separator();
+
+    const viber::VehicleParams params = state.previewVehicle
+        ? state.previewVehicle->getParams()
+        : viber::VehicleParams{};
+    const viber::VehicleState liveState = state.previewVehicle
+        ? state.previewVehicle->getState()
+        : viber::VehicleState{};
+
+    const float wheelbase = std::abs(params.wheelPositions[0].z - params.wheelPositions[2].z);
+    const float trackWidth = std::abs(params.wheelPositions[0].x - params.wheelPositions[1].x);
+    const float estPowerHp = params.maxEngineForce * 0.1f;
+    const float powerRating = params.maxEngineForce / 4000.0f;
+    const float gripRating = params.wheelFriction / 2.2f;
+    const float agilityRating = (glm::degrees(params.maxSteeringAngle) / 40.0f) + (1400.0f - params.mass) / 1200.0f;
+    const float durabilityRating = 1.0f - state.damageModel.getTotalDamage();
+
+    ImGui::Text("%s", state.vehicleName);
+    ImGui::TextDisabled("%s", describeVehicle(state).c_str());
+    ImGui::Spacing();
+
+    if (ImGui::BeginTable("VehicleSummary", 3, ImGuiTableFlags_SizingStretchSame)) {
+        ImGui::TableNextColumn();
+        ImGui::TextDisabled("CLASS");
+        ImGui::Text("%s", state.currentDef.chassisVariant == "hatchback_b" ? "Urban Hatch" : "Road Sedan");
+        ImGui::TableNextColumn();
+        ImGui::TextDisabled("SEED");
+        ImGui::Text("%u", state.seedInput);
+        ImGui::TableNextColumn();
+        ImGui::TextDisabled("LIVE");
+        ImGui::Text("%d km/h", static_cast<int>(liveState.speedKmh));
+        ImGui::EndTable();
+    }
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Ratings");
+    drawRatingBar("Power", powerRating, ImVec4(0.82f, 0.24f, 0.18f, 1.0f));
+    drawRatingBar("Grip", gripRating, ImVec4(0.26f, 0.62f, 0.40f, 1.0f));
+    drawRatingBar("Agility", agilityRating, ImVec4(0.28f, 0.52f, 0.82f, 1.0f));
+    drawRatingBar("Durability", durabilityRating, ImVec4(0.78f, 0.68f, 0.28f, 1.0f));
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Package");
+    drawMetricRow("Platform", state.currentDef.chassisVariant);
+    drawMetricRow("Hood", state.currentDef.hoodVariant);
+    drawMetricRow("Front Bumper", state.currentDef.bumperFrontVariant);
+    drawMetricRow("Spoiler", state.currentDef.spoilerVariant.empty() ? "none" : state.currentDef.spoilerVariant);
+    drawMetricRow("Wheel Package", state.currentDef.wheelVariants[0]);
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Specs");
+    drawMetricRow("Mass", std::to_string(static_cast<int>(params.mass)) + " kg");
+    drawMetricRow("Length", formatMeters(params.chassisLength));
+    drawMetricRow("Width", formatMeters(params.chassisWidth));
+    drawMetricRow("Height", formatMeters(params.chassisHeight));
+    drawMetricRow("Wheelbase", formatMeters(wheelbase));
+    drawMetricRow("Track Width", formatMeters(trackWidth));
+    drawMetricRow("Wheel Radius", formatMeters(params.wheelRadius));
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Performance");
+    drawMetricRow("Engine Force", std::to_string(static_cast<int>(params.maxEngineForce)) + " N");
+    drawMetricRow("Brake Force", std::to_string(static_cast<int>(params.maxBrakeForce)) + " N");
+    drawMetricRow("Est. Power", std::to_string(static_cast<int>(estPowerHp)) + " hp");
+    drawMetricRow("Steering Lock", std::to_string(static_cast<int>(glm::degrees(params.maxSteeringAngle))) + " deg");
+    drawMetricRow("Grip", formatScalar(params.wheelFriction, ""));
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Condition");
+    drawMetricRow("Damage", std::to_string(static_cast<int>(state.damageModel.getTotalDamage() * 100.0f)) + " %");
+    drawMetricRow("Primary Paint", formatScalar(state.currentDef.primaryColor.r, "") + ", " +
+        formatScalar(state.currentDef.primaryColor.g, "") + ", " +
+        formatScalar(state.currentDef.primaryColor.b, ""));
 }
 
 void drawDamagePanel(EditorState& state) {
@@ -177,6 +299,9 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         if (ImGui::MenuItem("Car Builder", nullptr, state.activeView == SidebarView::CarBuilder)) {
             state.activeView = SidebarView::CarBuilder;
         }
+        if (ImGui::MenuItem("Vehicle Info", nullptr, state.activeView == SidebarView::VehicleInfo)) {
+            state.activeView = SidebarView::VehicleInfo;
+        }
         if (ImGui::MenuItem("Atmosphere", nullptr, state.activeView == SidebarView::Atmosphere)) {
             state.activeView = SidebarView::Atmosphere;
         }
@@ -191,7 +316,7 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         ImGui::EndPopup();
     }
 
-    const char* activeLabel = state.activeView == SidebarView::CarBuilder ? "Car Builder" : "Atmosphere";
+    const char* activeLabel = getActiveViewLabel(state.activeView);
     const float fps = state.frameTimeMs > 0.0f ? 1000.0f / state.frameTimeMs : 0.0f;
     const std::string status = std::string(activeLabel) + "  |  Seed " + std::to_string(state.seedInput) +
         "  |  " + std::to_string(static_cast<int>(fps + 0.5f)) + " FPS";
@@ -278,12 +403,17 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
     if (ImGui::Selectable("Car Builder", state.activeView == SidebarView::CarBuilder)) {
         state.activeView = SidebarView::CarBuilder;
     }
+    if (ImGui::Selectable("Vehicle Info", state.activeView == SidebarView::VehicleInfo)) {
+        state.activeView = SidebarView::VehicleInfo;
+    }
     if (ImGui::Selectable("Atmosphere", state.activeView == SidebarView::Atmosphere)) {
         state.activeView = SidebarView::Atmosphere;
     }
     ImGui::Separator();
     if (state.activeView == SidebarView::CarBuilder) {
         drawPartSelector(state, partsJson);
+    } else if (state.activeView == SidebarView::VehicleInfo) {
+        drawVehicleInfoPanel(state);
     } else {
         drawAtmospherePanel(state);
     }
