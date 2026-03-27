@@ -132,7 +132,7 @@ viber::mat4 OrbitCamera::getView() const {
 }
 
 viber::mat4 OrbitCamera::getProj(float aspect) const {
-    return glm::perspective(glm::radians(50.0f), aspect, 0.1f, 200.0f);
+    return glm::perspective(glm::radians(50.0f), aspect, 0.1f, 4000.0f);
 }
 
 void OrbitCamera::orbit(float dx, float dy) {
@@ -141,7 +141,8 @@ void OrbitCamera::orbit(float dx, float dy) {
 }
 
 void OrbitCamera::zoom(float delta) {
-    radius = glm::clamp(radius - delta * 0.5f, 2.0f, 40.0f);
+    const float zoomStep = glm::max(1.0f, radius * 0.12f);
+    radius = glm::clamp(radius - delta * zoomStep, 2.0f, 400.0f);
 }
 
 void applyCarDefinition(EditorState& state, const viber::CarDefinition& def) {
@@ -169,6 +170,16 @@ void rebuildTrackPreview(EditorState& state) {
     state.trackPreviewMesh.create(simpleVertices, indices);
 }
 
+void rebuildGroundPreview(EditorState& state) {
+    state.groundPlane.destroy();
+    float size = 50.0f;
+    if (state.activeWorkspace == EditorWorkspace::Tracks) {
+        size = glm::max(64.0f, state.track.terrainSettings().worldSize);
+    }
+    const viber::u32 gridLines = static_cast<viber::u32>(glm::clamp(size / 8.0f, 24.0f, 220.0f));
+    state.groundPlane.init(size, gridLines);
+}
+
 void resetCamera(EditorState& state) {
     state.camera.yaw = 0.3f;
     state.camera.pitch = 0.35f;
@@ -177,9 +188,10 @@ void resetCamera(EditorState& state) {
 }
 
 void resetTrackCamera(EditorState& state) {
+    const float worldSize = glm::max(64.0f, state.track.terrainSettings().worldSize);
     state.camera.yaw = 0.4f;
     state.camera.pitch = 0.65f;
-    state.camera.radius = 70.0f;
+    state.camera.radius = glm::clamp(worldSize * 0.32f, 35.0f, 260.0f);
     state.camera.target = viber::vec3{0.0f, 0.0f, 0.0f};
 }
 

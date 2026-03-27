@@ -31,6 +31,16 @@ const char* getActiveViewLabel(SidebarView view) {
     }
 }
 
+const char* getTrackToolLabelInternal(TrackTool tool) {
+    switch (tool) {
+        case TrackTool::Select: return "Select";
+        case TrackTool::AddPoint: return "Add Point";
+        case TrackTool::MovePoint: return "Move Point";
+        case TrackTool::AddHole: return "Add Hole";
+        default: return "Track Tool";
+    }
+}
+
 void drawMetricRow(const char* label, const std::string& value) {
     ImGui::TextDisabled("%s", label);
     ImGui::SameLine(160.0f);
@@ -295,20 +305,25 @@ void drawTrackLayoutPanel(EditorState& state) {
         state.track = viber::Track{};
         state.track.setRoadWidth(roadWidth);
         state.trackClosedLoop = true;
+        state.selectedTrackPoint = 0;
         state.tunnelHoleA = 0;
         state.tunnelHoleB = 1;
         syncTrackEditorFieldsFromTrack(state);
         rebuildTrackPreview(state);
+        rebuildGroundPreview(state);
         resetTrackCamera(state);
     }
     ImGui::SameLine();
     if (ImGui::Button("Load")) {
         if (state.track.loadFromFile(state.trackFilePath)) {
             state.trackClosedLoop = state.track.getSpline().isClosedLoop();
+            state.selectedTrackPoint = 0;
             state.tunnelHoleA = 0;
             state.tunnelHoleB = state.track.holes().size() >= 2 ? 1 : 0;
             syncTrackEditorFieldsFromTrack(state);
             rebuildTrackPreview(state);
+            rebuildGroundPreview(state);
+            resetTrackCamera(state);
         }
     }
     ImGui::SameLine();
@@ -321,19 +336,89 @@ void drawTrackLayoutPanel(EditorState& state) {
         state.track.saveToFile(state.trackFilePath);
     }
 
-    if (ImGui::Button("Add Point")) {
+    if (ImGui::Button("Add Point At Camera")) {
         state.track.getSpline().addControlPoint(state.camera.target);
         if (state.trackClosedLoop) {
             state.track.getSpline().closeLoop();
         }
+        state.selectedTrackPoint = static_cast<int>(state.track.getSpline().getNumControlPoints()) - 1;
         state.track.generateFromSpline(state.track.getSpline());
         rebuildTrackPreview(state);
     }
     ImGui::SameLine();
-    if (ImGui::Button("Clear")) {
+    if (ImGui::Button("Clear Track")) {
         state.track.getSpline().clear();
+        state.selectedTrackPoint = 0;
         state.track.generateFromSpline(state.track.getSpline());
         rebuildTrackPreview(state);
+    }
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Track Tools");
+    int pointCount = static_cast<int>(state.track.getSpline().getNumControlPoints());
+    if (pointCount > 0) {
+        state.selectedTrackPoint = glm::clamp(state.selectedTrackPoint, 0, pointCount - 1);
+        ImGui::SliderInt("Selected Point", &state.selectedTrackPoint, 0, pointCount - 1);
+
+        viber::vec3 selectedPoint = state.track.getSpline().getControlPoints()[state.selectedTrackPoint];
+        if (ImGui::DragFloat3("Point Position", &selectedPoint.x, 0.25f)) {
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), selectedPoint);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+
+        if (ImGui::Button("Move Selected To Camera")) {
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), state.camera.target);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Insert After Selected")) {
+            state.track.getSpline().insertControlPoint(static_cast<size_t>(state.selectedTrackPoint + 1), state.camera.target);
+            state.selectedTrackPoint += 1;
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Delete Selected")) {
+            state.track.getSpline().removeControlPoint(static_cast<size_t>(state.selectedTrackPoint));
+            state.selectedTrackPoint = glm::clamp(state.selectedTrackPoint, 0, glm::max(0, static_cast<int>(state.track.getSpline().getNumControlPoints()) - 1));
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+
+        ImGui::SliderFloat("Move Step", &state.trackPointMoveStep, 0.5f, 25.0f);
+        if (ImGui::Button("Nudge +X")) {
+            selectedPoint.x += state.trackPointMoveStep;
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), selectedPoint);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Nudge -X")) {
+            selectedPoint.x -= state.trackPointMoveStep;
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), selectedPoint);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        if (ImGui::Button("Nudge +Z")) {
+            selectedPoint.z += state.trackPointMoveStep;
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), selectedPoint);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Nudge -Z")) {
+            selectedPoint.z -= state.trackPointMoveStep;
+            state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), selectedPoint);
+            state.track.generateFromSpline(state.track.getSpline());
+            rebuildTrackPreview(state);
+        }
+        if (ImGui::Button("Focus Selected")) {
+            state.camera.target = selectedPoint;
+        }
+    } else {
+        ImGui::TextDisabled("No control points yet. Add one at the camera target.");
     }
 
     ImGui::Separator();
@@ -341,11 +426,15 @@ void drawTrackLayoutPanel(EditorState& state) {
     auto& terrain = state.track.terrainSettings();
     ImGui::InputScalar("Terrain Seed", ImGuiDataType_U32, &terrain.seed);
     ImGui::SliderInt("Base Resolution", &terrain.baseResolution, 128, 2048);
-    ImGui::SliderFloat("World Size", &terrain.worldSize, 128.0f, 2048.0f);
+    if (ImGui::SliderFloat("World Size", &terrain.worldSize, 128.0f, 2048.0f)) {
+        rebuildGroundPreview(state);
+        resetTrackCamera(state);
+    }
     ImGui::SliderFloat("Max Height", &terrain.maxHeight, 16.0f, 256.0f);
     ImGui::InputText("Biome", state.terrainBiome, IM_ARRAYSIZE(state.terrainBiome));
     ImGui::InputText("Heightmap Edit", state.terrainHeightmapEditPath, IM_ARRAYSIZE(state.terrainHeightmapEditPath));
     ImGui::InputText("Hole Mask", state.terrainHoleMaskPath, IM_ARRAYSIZE(state.terrainHoleMaskPath));
+    ImGui::TextWrapped("Terrain settings change the current map immediately and are written into the track asset only when you save.");
 
     ImGui::Separator();
     ImGui::TextDisabled("Holes");
@@ -412,7 +501,7 @@ void drawTrackLayoutPanel(EditorState& state) {
 
     ImGui::Separator();
     ImGui::TextDisabled("Edit");
-    ImGui::TextWrapped("Use camera target as placement point. Add road points or holes from the current orbit focus, then connect two holes with a seeded tunnel generator.");
+    ImGui::TextWrapped("Use camera target as placement point. WASD pans the camera target, QE moves vertically, wheel zooms, and control points can be moved directly from this panel.");
 }
 
 void drawTrackInfoPanel(EditorState& state) {
@@ -464,16 +553,22 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
             if (ImGui::MenuItem("New Track")) {
                 state.track = viber::Track{};
                 state.trackClosedLoop = true;
+                state.selectedTrackPoint = 0;
                 syncTrackEditorFieldsFromTrack(state);
                 rebuildTrackPreview(state);
+                rebuildGroundPreview(state);
+                resetTrackCamera(state);
             }
             if (ImGui::MenuItem("Load Track")) {
                 if (state.track.loadFromFile(state.trackFilePath)) {
                     state.trackClosedLoop = state.track.getSpline().isClosedLoop();
+                    state.selectedTrackPoint = 0;
                     state.tunnelHoleA = 0;
                     state.tunnelHoleB = state.track.holes().size() >= 2 ? 1 : 0;
                     syncTrackEditorFieldsFromTrack(state);
                     rebuildTrackPreview(state);
+                    rebuildGroundPreview(state);
+                    resetTrackCamera(state);
                 }
             }
             if (ImGui::MenuItem("Save Track")) {
@@ -496,11 +591,13 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         if (ImGui::MenuItem("Vehicles", nullptr, state.activeWorkspace == EditorWorkspace::Vehicles)) {
             state.activeWorkspace = EditorWorkspace::Vehicles;
             state.activeView = SidebarView::CarBuilder;
+            rebuildGroundPreview(state);
             resetCamera(state);
         }
         if (ImGui::MenuItem("Tracks", nullptr, state.activeWorkspace == EditorWorkspace::Tracks)) {
             state.activeWorkspace = EditorWorkspace::Tracks;
             state.activeView = SidebarView::TrackLayout;
+            rebuildGroundPreview(state);
             resetTrackCamera(state);
         }
         ImGui::EndPopup();
@@ -535,7 +632,11 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         ImGui::MenuItem("Simulation Panel", nullptr, &state.showSimulation);
         ImGui::MenuItem("Controls Panel", nullptr, &state.showControls);
         if (ImGui::MenuItem("Reset Camera")) {
-            resetCamera(state);
+            if (state.activeWorkspace == EditorWorkspace::Tracks) {
+                resetTrackCamera(state);
+            } else {
+                resetCamera(state);
+            }
         }
         ImGui::EndPopup();
     }
@@ -593,6 +694,26 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
         ImGui::Text("Time %.0f%%", state.timeOfDay * 100.0f);
     } else {
         ImGui::Text("Track points %d", static_cast<int>(state.track.getSpline().getNumControlPoints()));
+        ImGui::SameLine();
+        ImGui::TextDisabled("|");
+        ImGui::SameLine();
+        ImGui::Text("Tool %s", getTrackToolLabelInternal(state.activeTrackTool));
+        ImGui::Spacing();
+        if (ImGui::Button("Select")) {
+            state.activeTrackTool = TrackTool::Select;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Add Point")) {
+            state.activeTrackTool = TrackTool::AddPoint;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Move Point")) {
+            state.activeTrackTool = TrackTool::MovePoint;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Add Hole")) {
+            state.activeTrackTool = TrackTool::AddHole;
+        }
     }
     ImGui::EndChild();
     ImGui::PopStyleVar();
@@ -600,6 +721,10 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
 }
 
 } // namespace
+
+const char* getTrackToolLabel(TrackTool tool) {
+    return getTrackToolLabelInternal(tool);
+}
 
 void drawEditorShell(EditorState& state, const std::string& partsJson, const EditorLayout& layout) {
     const EditorStyle& style = state.style;
@@ -689,9 +814,15 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
             ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::TextDisabled("CONTROLS");
         ImGui::Separator();
-        ImGui::Text("Left Mouse: Orbit");
-        ImGui::Text("Scroll: Zoom");
-        ImGui::Text("Use View menu for toggles");
+        if (state.activeWorkspace == EditorWorkspace::Tracks) {
+            ImGui::Text("Left Mouse: %s", getTrackToolLabelInternal(state.activeTrackTool));
+            ImGui::Text("Right Mouse: Orbit");
+        } else {
+            ImGui::Text("Left Mouse: Orbit");
+        }
+        ImGui::Text("Wheel: Zoom");
+        ImGui::Text("WASD: Pan target");
+        ImGui::Text("Q / E: Move target Y");
         ImGui::EndChild();
         ImGui::PopStyleVar();
         ImGui::PopStyleColor();

@@ -30,6 +30,13 @@ enum class SidebarView {
     TrackInfo
 };
 
+enum class TrackTool {
+    Select = 0,
+    AddPoint,
+    MovePoint,
+    AddHole
+};
+
 struct EditorLayout {
     ImVec2 boardPos;
     ImVec2 boardSize;
@@ -75,6 +82,7 @@ struct EditorState {
     bool dragging = false;
     double lastMouseX = 0.0;
     double lastMouseY = 0.0;
+    bool lastLeftMousePressed = false;
 
     float simImpulse = 200.0f;
     int simWheelIndex = 0;
@@ -97,6 +105,9 @@ struct EditorState {
     char terrainHeightmapEditPath[128] = "heightmap_edit.png";
     char terrainHoleMaskPath[128] = "hole_mask.png";
     bool trackClosedLoop = true;
+    int selectedTrackPoint = 0;
+    float trackPointMoveStep = 5.0f;
+    TrackTool activeTrackTool = TrackTool::Select;
     float trackHoleRadius = 10.0f;
     float trackHoleDepth = 12.0f;
     int tunnelHoleA = 0;
@@ -118,6 +129,7 @@ EditorLayout computeLayout(const ImVec2& display, const EditorStyle& style);
 void applyCarDefinition(EditorState& state, const viber::CarDefinition& def);
 void resetCamera(EditorState& state);
 void rebuildTrackPreview(EditorState& state);
+void rebuildGroundPreview(EditorState& state);
 void resetTrackCamera(EditorState& state);
 void syncTrackEditorFieldsFromTrack(EditorState& state);
 

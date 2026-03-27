@@ -43,6 +43,164 @@ bool isMouseInInteractiveViewport(const car_editor::EditorState& state, const ca
     return true;
 }
 
+bool rayPlaneIntersection(const car_editor::EditorState& state, const Window& window, const car_editor::EditorLayout& layout,
+                          double mouseX, double mouseY, float planeY, vec3& outPoint) {
+    const auto size = window.getSize();
+    const float aspect = size.x / size.y;
+    const mat4 view = state.camera.getView();
+    const mat4 proj = state.camera.getProj(aspect);
+    const mat4 invViewProj = glm::inverse(proj * view);
+
+    const float localX = static_cast<float>((mouseX - layout.viewportPos.x) / layout.viewportSize.x);
+    const float localY = static_cast<float>((mouseY - layout.viewportPos.y) / layout.viewportSize.y);
+    const float ndcX = localX * 2.0f - 1.0f;
+    const float ndcY = 1.0f - localY * 2.0f;
+
+    const vec4 nearClip = invViewProj * vec4(ndcX, ndcY, 0.0f, 1.0f);
+    const vec4 farClip = invViewProj * vec4(ndcX, ndcY, 1.0f, 1.0f);
+    if (std::abs(nearClip.w) < 0.0001f || std::abs(farClip.w) < 0.0001f) {
+        return false;
+    }
+
+    const vec3 nearPoint = vec3(nearClip) / nearClip.w;
+    const vec3 farPoint = vec3(farClip) / farClip.w;
+    const vec3 direction = glm::normalize(farPoint - nearPoint);
+    if (std::abs(direction.y) < 0.0001f) {
+        return false;
+    }
+
+    const float t = (planeY - nearPoint.y) / direction.y;
+    if (t < 0.0f) {
+        return false;
+    }
+
+    outPoint = nearPoint + direction * t;
+    return true;
+}
+
+void updateTrackViewportTool(car_editor::EditorState& state, const Window& window, GLFWwindow* glfwWindow,
+                             const car_editor::EditorLayout& layout) {
+    if (state.activeWorkspace != car_editor::EditorWorkspace::Tracks) {
+        state.lastLeftMousePressed = glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+        return;
+    }
+
+    double mouseX = 0.0;
+    double mouseY = 0.0;
+    glfwGetCursorPos(glfwWindow, &mouseX, &mouseY);
+    const bool inViewport = isMouseInInteractiveViewport(state, layout, mouseX, mouseY);
+    const bool leftPressed = glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    const bool justPressed = leftPressed && !state.lastLeftMousePressed;
+    state.lastLeftMousePressed = leftPressed;
+
+    if (!justPressed || !inViewport || ImGui::GetIO().WantCaptureMouse) {
+        return;
+    }
+
+    vec3 hitPoint{0.0f};
+    float targetY = 0.0f;
+    if (state.activeTrackTool == car_editor::TrackTool::MovePoint &&
+        state.selectedTrackPoint >= 0 &&
+        state.selectedTrackPoint < static_cast<int>(state.track.getSpline().getNumControlPoints())) {
+        targetY = state.track.getSpline().getControlPoints()[state.selectedTrackPoint].y;
+    }
+
+    if (!rayPlaneIntersection(state, window, layout, mouseX, mouseY, targetY, hitPoint)) {
+        return;
+    }
+
+    switch (state.activeTrackTool) {
+        case car_editor::TrackTool::Select: {
+            const auto& points = state.track.getSpline().getControlPoints();
+            float bestDistance2 = glm::max(16.0f, state.camera.radius * 0.15f);
+            bestDistance2 *= bestDistance2;
+            int bestIndex = -1;
+            for (int i = 0; i < static_cast<int>(points.size()); ++i) {
+                const float distance2 = glm::distance2(points[i], hitPoint);
+                if (distance2 < bestDistance2) {
+                    bestDistance2 = distance2;
+                    bestIndex = i;
+                }
+            }
+            if (bestIndex >= 0) {
+                state.selectedTrackPoint = bestIndex;
+                state.camera.target = points[bestIndex];
+            }
+            break;
+        }
+        case car_editor::TrackTool::AddPoint:
+            state.track.getSpline().addControlPoint(hitPoint);
+            if (state.trackClosedLoop) {
+                state.track.getSpline().closeLoop();
+            }
+            state.selectedTrackPoint = static_cast<int>(state.track.getSpline().getNumControlPoints()) - 1;
+            state.track.generateFromSpline(state.track.getSpline());
+            car_editor::rebuildTrackPreview(state);
+            break;
+        case car_editor::TrackTool::MovePoint:
+            if (state.selectedTrackPoint >= 0 &&
+                state.selectedTrackPoint < static_cast<int>(state.track.getSpline().getNumControlPoints())) {
+                state.track.getSpline().setControlPoint(static_cast<size_t>(state.selectedTrackPoint), hitPoint);
+                state.track.generateFromSpline(state.track.getSpline());
+                car_editor::rebuildTrackPreview(state);
+            }
+            break;
+        case car_editor::TrackTool::AddHole: {
+            viber::TrackHole hole;
+            hole.position = hitPoint;
+            hole.radius = state.trackHoleRadius;
+            hole.depth = state.trackHoleDepth;
+            state.track.addHole(hole);
+            const size_t holeCount = state.track.holes().size();
+            if (holeCount == 1) {
+                state.tunnelHoleA = 0;
+                state.tunnelHoleB = 0;
+            } else if (holeCount >= 2) {
+                state.tunnelHoleA = static_cast<int>(holeCount - 2);
+                state.tunnelHoleB = static_cast<int>(holeCount - 1);
+            }
+            car_editor::rebuildTrackPreview(state);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void updateKeyboardCamera(car_editor::EditorState& state, const Window& window, float dt) {
+    if (ImGui::GetIO().WantCaptureKeyboard) {
+        return;
+    }
+
+    vec3 move{0.0f};
+    const float moveSpeed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) ? 80.0f : 35.0f;
+    const vec3 forward = glm::normalize(vec3{std::sin(state.camera.yaw), 0.0f, std::cos(state.camera.yaw)});
+    const vec3 right = glm::normalize(vec3{forward.z, 0.0f, -forward.x});
+
+    if (window.isKeyPressed(GLFW_KEY_W)) {
+        move += forward;
+    }
+    if (window.isKeyPressed(GLFW_KEY_S)) {
+        move -= forward;
+    }
+    if (window.isKeyPressed(GLFW_KEY_D)) {
+        move += right;
+    }
+    if (window.isKeyPressed(GLFW_KEY_A)) {
+        move -= right;
+    }
+    if (window.isKeyPressed(GLFW_KEY_E)) {
+        move.y += 1.0f;
+    }
+    if (window.isKeyPressed(GLFW_KEY_Q)) {
+        move.y -= 1.0f;
+    }
+
+    if (glm::length2(move) > 0.0001f) {
+        state.camera.target += glm::normalize(move) * moveSpeed * dt;
+    }
+}
+
 void initEditorState(car_editor::EditorState& state, const std::string& partsJson) {
     state.carBody.init(state.currentDef, partsJson);
     state.trackPointMarkerMesh = Mesh::createBox({1.2f, 1.2f, 1.2f});
@@ -65,7 +223,7 @@ void initEditorState(car_editor::EditorState& state, const std::string& partsJso
 
     state.groundProgram = createBasicShader();
     if (bgfx::isValid(state.groundProgram)) {
-        state.groundPlane.init(50.0f, 50);
+        car_editor::rebuildGroundPreview(state);
     } else {
         spdlog::warn("Failed to load ground shader");
     }
@@ -104,7 +262,10 @@ void updateOrbitDrag(car_editor::EditorState& state, GLFWwindow* glfwWindow, con
     glfwGetCursorPos(glfwWindow, &mouseX, &mouseY);
     const bool allowViewportInput = isMouseInInteractiveViewport(state, layout, mouseX, mouseY);
 
-    if (allowViewportInput && glfwGetMouseButton(glfwWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    const int orbitButton = state.activeWorkspace == car_editor::EditorWorkspace::Tracks
+        ? GLFW_MOUSE_BUTTON_RIGHT
+        : GLFW_MOUSE_BUTTON_LEFT;
+    if (allowViewportInput && glfwGetMouseButton(glfwWindow, orbitButton) == GLFW_PRESS) {
         if (state.dragging) {
             state.camera.orbit(
                 static_cast<float>(mouseX - state.lastMouseX),
@@ -281,6 +442,8 @@ int main() {
         const auto size = window.getSize();
         const car_editor::EditorLayout layout = car_editor::computeLayout(ImVec2(size.x, size.y), state.style);
         updateOrbitDrag(state, glfwWindow, layout);
+        updateKeyboardCamera(state, window, dt);
+        updateTrackViewportTool(state, window, glfwWindow, layout);
 
         renderer.beginFrame();
         renderPreviewScene(state, window, dt);
