@@ -12,11 +12,21 @@ namespace car_editor {
 
 namespace {
 
+const char* getWorkspaceLabel(EditorWorkspace workspace) {
+    switch (workspace) {
+        case EditorWorkspace::Vehicles: return "Vehicles";
+        case EditorWorkspace::Tracks: return "Tracks";
+        default: return "Editor";
+    }
+}
+
 const char* getActiveViewLabel(SidebarView view) {
     switch (view) {
         case SidebarView::CarBuilder: return "Car Builder";
         case SidebarView::VehicleInfo: return "Vehicle Info";
         case SidebarView::Atmosphere: return "Atmosphere";
+        case SidebarView::TrackLayout: return "Track Layout";
+        case SidebarView::TrackInfo: return "Track Info";
         default: return "Editor";
     }
 }
@@ -258,6 +268,167 @@ void drawAtmospherePanel(EditorState& state) {
     }
 }
 
+void drawTrackLayoutPanel(EditorState& state) {
+    ImGui::TextDisabled("Track");
+    ImGui::InputText("Track Name", state.trackName, IM_ARRAYSIZE(state.trackName));
+    ImGui::InputText("Track File", state.trackFilePath, IM_ARRAYSIZE(state.trackFilePath));
+
+    float roadWidth = state.track.getRoadWidth();
+    if (ImGui::SliderFloat("Road Width", &roadWidth, 6.0f, 30.0f)) {
+        state.track.setRoadWidth(roadWidth);
+        state.track.generateFromSpline(state.track.getSpline());
+        rebuildTrackPreview(state);
+    }
+
+    bool closedLoop = state.track.getSpline().isClosedLoop();
+    if (ImGui::Checkbox("Closed Loop", &closedLoop)) {
+        viber::Spline spline(state.track.getSpline().getControlPoints());
+        if (closedLoop) {
+            spline.closeLoop();
+        }
+        state.track.generateFromSpline(spline);
+        state.trackClosedLoop = closedLoop;
+        rebuildTrackPreview(state);
+    }
+
+    if (ImGui::Button("New Track")) {
+        state.track = viber::Track{};
+        state.track.setRoadWidth(roadWidth);
+        state.trackClosedLoop = true;
+        state.tunnelHoleA = 0;
+        state.tunnelHoleB = 1;
+        syncTrackEditorFieldsFromTrack(state);
+        rebuildTrackPreview(state);
+        resetTrackCamera(state);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load")) {
+        if (state.track.loadFromFile(state.trackFilePath)) {
+            state.trackClosedLoop = state.track.getSpline().isClosedLoop();
+            state.tunnelHoleA = 0;
+            state.tunnelHoleB = state.track.holes().size() >= 2 ? 1 : 0;
+            syncTrackEditorFieldsFromTrack(state);
+            rebuildTrackPreview(state);
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save")) {
+        state.track.setName(state.trackName);
+        auto& terrain = state.track.terrainSettings();
+        terrain.biome = state.terrainBiome;
+        terrain.heightmapEditPath = state.terrainHeightmapEditPath;
+        terrain.holeMaskPath = state.terrainHoleMaskPath;
+        state.track.saveToFile(state.trackFilePath);
+    }
+
+    if (ImGui::Button("Add Point")) {
+        state.track.getSpline().addControlPoint(state.camera.target);
+        if (state.trackClosedLoop) {
+            state.track.getSpline().closeLoop();
+        }
+        state.track.generateFromSpline(state.track.getSpline());
+        rebuildTrackPreview(state);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+        state.track.getSpline().clear();
+        state.track.generateFromSpline(state.track.getSpline());
+        rebuildTrackPreview(state);
+    }
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Terrain");
+    auto& terrain = state.track.terrainSettings();
+    ImGui::InputScalar("Terrain Seed", ImGuiDataType_U32, &terrain.seed);
+    ImGui::SliderInt("Base Resolution", &terrain.baseResolution, 128, 2048);
+    ImGui::SliderFloat("World Size", &terrain.worldSize, 128.0f, 2048.0f);
+    ImGui::SliderFloat("Max Height", &terrain.maxHeight, 16.0f, 256.0f);
+    ImGui::InputText("Biome", state.terrainBiome, IM_ARRAYSIZE(state.terrainBiome));
+    ImGui::InputText("Heightmap Edit", state.terrainHeightmapEditPath, IM_ARRAYSIZE(state.terrainHeightmapEditPath));
+    ImGui::InputText("Hole Mask", state.terrainHoleMaskPath, IM_ARRAYSIZE(state.terrainHoleMaskPath));
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Holes");
+    ImGui::SliderFloat("Hole Radius", &state.trackHoleRadius, 4.0f, 40.0f);
+    ImGui::SliderFloat("Hole Depth", &state.trackHoleDepth, 4.0f, 40.0f);
+    if (ImGui::Button("Add Hole At Camera Target")) {
+        viber::TrackHole hole;
+        hole.position = state.camera.target;
+        hole.radius = state.trackHoleRadius;
+        hole.depth = state.trackHoleDepth;
+        state.track.addHole(hole);
+        if (state.track.holes().size() == 1) {
+            state.tunnelHoleA = 0;
+            state.tunnelHoleB = 0;
+        } else if (state.track.holes().size() == 2) {
+            state.tunnelHoleB = 1;
+        }
+        rebuildTrackPreview(state);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Clear Holes")) {
+        state.track.clearHoles();
+        state.tunnelHoleA = 0;
+        state.tunnelHoleB = 1;
+        rebuildTrackPreview(state);
+    }
+
+    const int holeCount = static_cast<int>(state.track.holes().size());
+    if (holeCount > 0) {
+        state.tunnelHoleA = glm::clamp(state.tunnelHoleA, 0, holeCount - 1);
+        state.tunnelHoleB = glm::clamp(state.tunnelHoleB, 0, holeCount - 1);
+    } else {
+        state.tunnelHoleA = 0;
+        state.tunnelHoleB = 0;
+    }
+    ImGui::InputInt("Hole A", &state.tunnelHoleA);
+    ImGui::InputInt("Hole B", &state.tunnelHoleB);
+    state.tunnelHoleA = holeCount > 0 ? glm::clamp(state.tunnelHoleA, 0, holeCount - 1) : 0;
+    state.tunnelHoleB = holeCount > 0 ? glm::clamp(state.tunnelHoleB, 0, holeCount - 1) : 0;
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Tunnel Generator");
+    ImGui::InputScalar("Tunnel Seed", ImGuiDataType_U32, &state.tunnelSeed);
+    if (ImGui::Button("Connect Two Holes")) {
+        if (state.track.generateTunnelBetweenHoles(
+                static_cast<size_t>(state.tunnelHoleA),
+                static_cast<size_t>(state.tunnelHoleB),
+                state.tunnelSeed)) {
+            rebuildTrackPreview(state);
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Connect Last Two")) {
+        if (holeCount >= 2 &&
+            state.track.generateTunnelBetweenHoles(
+                static_cast<size_t>(holeCount - 2),
+                static_cast<size_t>(holeCount - 1),
+                state.tunnelSeed)) {
+            state.tunnelHoleA = holeCount - 2;
+            state.tunnelHoleB = holeCount - 1;
+            rebuildTrackPreview(state);
+        }
+    }
+
+    ImGui::Separator();
+    ImGui::TextDisabled("Edit");
+    ImGui::TextWrapped("Use camera target as placement point. Add road points or holes from the current orbit focus, then connect two holes with a seeded tunnel generator.");
+}
+
+void drawTrackInfoPanel(EditorState& state) {
+    const auto& spline = state.track.getSpline();
+    drawMetricRow("Track Name", state.trackName);
+    drawMetricRow("Control Points", std::to_string(static_cast<int>(spline.getNumControlPoints())));
+    drawMetricRow("Length", formatMeters(state.track.getLength()));
+    drawMetricRow("Road Width", formatMeters(state.track.getRoadWidth()));
+    drawMetricRow("Loop", spline.isClosedLoop() ? "closed" : "open");
+    drawMetricRow("Terrain Seed", std::to_string(state.track.terrainSettings().seed));
+    drawMetricRow("World Size", formatMeters(state.track.terrainSettings().worldSize));
+    drawMetricRow("Holes", std::to_string(static_cast<int>(state.track.holes().size())));
+    drawMetricRow("Tunnels", std::to_string(static_cast<int>(state.track.tunnels().size())));
+    drawMetricRow("File", state.trackFilePath);
+}
+
 void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLayout& layout) {
     const EditorStyle& style = state.style;
     ImGui::SetCursorScreenPos(layout.topBarPos);
@@ -276,17 +447,61 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         ImGui::OpenPopup("FileMenu");
     }
     if (ImGui::BeginPopup("FileMenu")) {
-        if (ImGui::MenuItem("Randomize From Seed")) {
-            applyCarDefinition(state, viber::CarBody::generateFromSeed(state.seedInput, partsJson));
+        if (state.activeWorkspace == EditorWorkspace::Vehicles) {
+            if (ImGui::MenuItem("Randomize From Seed")) {
+                applyCarDefinition(state, viber::CarBody::generateFromSeed(state.seedInput, partsJson));
+            }
+            if (ImGui::MenuItem("Reset Default")) {
+                applyCarDefinition(state, viber::CarDefinition::makeDefault());
+            }
+            if (ImGui::MenuItem("Load car_export.json")) {
+                applyCarDefinition(state, viber::CarDefinition::fromJson("car_export.json"));
+            }
+            if (ImGui::MenuItem("Export car_export.json")) {
+                state.currentDef.toJson("car_export.json");
+            }
+        } else {
+            if (ImGui::MenuItem("New Track")) {
+                state.track = viber::Track{};
+                state.trackClosedLoop = true;
+                syncTrackEditorFieldsFromTrack(state);
+                rebuildTrackPreview(state);
+            }
+            if (ImGui::MenuItem("Load Track")) {
+                if (state.track.loadFromFile(state.trackFilePath)) {
+                    state.trackClosedLoop = state.track.getSpline().isClosedLoop();
+                    state.tunnelHoleA = 0;
+                    state.tunnelHoleB = state.track.holes().size() >= 2 ? 1 : 0;
+                    syncTrackEditorFieldsFromTrack(state);
+                    rebuildTrackPreview(state);
+                }
+            }
+            if (ImGui::MenuItem("Save Track")) {
+                state.track.setName(state.trackName);
+                auto& terrain = state.track.terrainSettings();
+                terrain.biome = state.terrainBiome;
+                terrain.heightmapEditPath = state.terrainHeightmapEditPath;
+                terrain.holeMaskPath = state.terrainHoleMaskPath;
+                state.track.saveToFile(state.trackFilePath);
+            }
         }
-        if (ImGui::MenuItem("Reset Default")) {
-            applyCarDefinition(state, viber::CarDefinition::makeDefault());
+        ImGui::EndPopup();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button(getWorkspaceLabel(state.activeWorkspace))) {
+        ImGui::OpenPopup("WorkspaceMenu");
+    }
+    if (ImGui::BeginPopup("WorkspaceMenu")) {
+        if (ImGui::MenuItem("Vehicles", nullptr, state.activeWorkspace == EditorWorkspace::Vehicles)) {
+            state.activeWorkspace = EditorWorkspace::Vehicles;
+            state.activeView = SidebarView::CarBuilder;
+            resetCamera(state);
         }
-        if (ImGui::MenuItem("Load car_export.json")) {
-            applyCarDefinition(state, viber::CarDefinition::fromJson("car_export.json"));
-        }
-        if (ImGui::MenuItem("Export car_export.json")) {
-            state.currentDef.toJson("car_export.json");
+        if (ImGui::MenuItem("Tracks", nullptr, state.activeWorkspace == EditorWorkspace::Tracks)) {
+            state.activeWorkspace = EditorWorkspace::Tracks;
+            state.activeView = SidebarView::TrackLayout;
+            resetTrackCamera(state);
         }
         ImGui::EndPopup();
     }
@@ -296,14 +511,23 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
         ImGui::OpenPopup("ViewMenu");
     }
     if (ImGui::BeginPopup("ViewMenu")) {
-        if (ImGui::MenuItem("Car Builder", nullptr, state.activeView == SidebarView::CarBuilder)) {
-            state.activeView = SidebarView::CarBuilder;
-        }
-        if (ImGui::MenuItem("Vehicle Info", nullptr, state.activeView == SidebarView::VehicleInfo)) {
-            state.activeView = SidebarView::VehicleInfo;
-        }
-        if (ImGui::MenuItem("Atmosphere", nullptr, state.activeView == SidebarView::Atmosphere)) {
-            state.activeView = SidebarView::Atmosphere;
+        if (state.activeWorkspace == EditorWorkspace::Vehicles) {
+            if (ImGui::MenuItem("Car Builder", nullptr, state.activeView == SidebarView::CarBuilder)) {
+                state.activeView = SidebarView::CarBuilder;
+            }
+            if (ImGui::MenuItem("Vehicle Info", nullptr, state.activeView == SidebarView::VehicleInfo)) {
+                state.activeView = SidebarView::VehicleInfo;
+            }
+            if (ImGui::MenuItem("Atmosphere", nullptr, state.activeView == SidebarView::Atmosphere)) {
+                state.activeView = SidebarView::Atmosphere;
+            }
+        } else {
+            if (ImGui::MenuItem("Track Layout", nullptr, state.activeView == SidebarView::TrackLayout)) {
+                state.activeView = SidebarView::TrackLayout;
+            }
+            if (ImGui::MenuItem("Track Info", nullptr, state.activeView == SidebarView::TrackInfo)) {
+                state.activeView = SidebarView::TrackInfo;
+            }
         }
         ImGui::Separator();
         ImGui::MenuItem("Auto Rotate", nullptr, &state.autoRotate);
@@ -318,7 +542,8 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
 
     const char* activeLabel = getActiveViewLabel(state.activeView);
     const float fps = state.frameTimeMs > 0.0f ? 1000.0f / state.frameTimeMs : 0.0f;
-    const std::string status = std::string(activeLabel) + "  |  Seed " + std::to_string(state.seedInput) +
+    const std::string status = std::string(getWorkspaceLabel(state.activeWorkspace)) + " / " + activeLabel +
+        "  |  Seed " + std::to_string(state.seedInput) +
         "  |  " + std::to_string(static_cast<int>(fps + 0.5f)) + " FPS";
     const float statusX = std::max(160.0f, layout.topBarSize.x - 360.0f);
     ImGui::SameLine(statusX);
@@ -331,8 +556,8 @@ void drawTopBar(EditorState& state, const std::string& partsJson, const EditorLa
     }
     if (ImGui::BeginPopupModal("HelpPopup", &state.showHelp, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::Text("Orbit the car with left mouse and zoom with the wheel.");
-        ImGui::Text("Use the sidebar to switch between build and atmosphere tools.");
-        ImGui::Text("File menu handles import/export and presets.");
+        ImGui::Text("Use the workspace switcher to move between vehicles and tracks.");
+        ImGui::Text("File menu handles import/export for the active workspace.");
         if (ImGui::Button("Close")) {
             state.showHelp = false;
             ImGui::CloseCurrentPopup();
@@ -364,7 +589,11 @@ void drawViewportFrame(EditorState& state, const EditorLayout& layout) {
     ImGui::SameLine();
     ImGui::TextDisabled("|");
     ImGui::SameLine();
-    ImGui::Text("Time %.0f%%", state.timeOfDay * 100.0f);
+    if (state.activeWorkspace == EditorWorkspace::Vehicles) {
+        ImGui::Text("Time %.0f%%", state.timeOfDay * 100.0f);
+    } else {
+        ImGui::Text("Track points %d", static_cast<int>(state.track.getSpline().getNumControlPoints()));
+    }
     ImGui::EndChild();
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(2);
@@ -400,22 +629,39 @@ void drawEditorShell(EditorState& state, const std::string& partsJson, const Edi
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(style.sidebarPaddingX, style.sidebarPaddingY));
     ImGui::BeginChild("Sidebar", layout.sidebarSize, true, ImGuiWindowFlags_NoScrollbar);
     ImGui::TextDisabled("CURRENT VIEW");
-    if (ImGui::Selectable("Car Builder", state.activeView == SidebarView::CarBuilder)) {
-        state.activeView = SidebarView::CarBuilder;
-    }
-    if (ImGui::Selectable("Vehicle Info", state.activeView == SidebarView::VehicleInfo)) {
-        state.activeView = SidebarView::VehicleInfo;
-    }
-    if (ImGui::Selectable("Atmosphere", state.activeView == SidebarView::Atmosphere)) {
-        state.activeView = SidebarView::Atmosphere;
+    if (state.activeWorkspace == EditorWorkspace::Vehicles) {
+        if (ImGui::Selectable("Car Builder", state.activeView == SidebarView::CarBuilder)) {
+            state.activeView = SidebarView::CarBuilder;
+        }
+        if (ImGui::Selectable("Vehicle Info", state.activeView == SidebarView::VehicleInfo)) {
+            state.activeView = SidebarView::VehicleInfo;
+        }
+        if (ImGui::Selectable("Atmosphere", state.activeView == SidebarView::Atmosphere)) {
+            state.activeView = SidebarView::Atmosphere;
+        }
+    } else {
+        if (ImGui::Selectable("Track Layout", state.activeView == SidebarView::TrackLayout)) {
+            state.activeView = SidebarView::TrackLayout;
+        }
+        if (ImGui::Selectable("Track Info", state.activeView == SidebarView::TrackInfo)) {
+            state.activeView = SidebarView::TrackInfo;
+        }
     }
     ImGui::Separator();
-    if (state.activeView == SidebarView::CarBuilder) {
-        drawPartSelector(state, partsJson);
-    } else if (state.activeView == SidebarView::VehicleInfo) {
-        drawVehicleInfoPanel(state);
+    if (state.activeWorkspace == EditorWorkspace::Vehicles) {
+        if (state.activeView == SidebarView::CarBuilder) {
+            drawPartSelector(state, partsJson);
+        } else if (state.activeView == SidebarView::VehicleInfo) {
+            drawVehicleInfoPanel(state);
+        } else {
+            drawAtmospherePanel(state);
+        }
     } else {
-        drawAtmospherePanel(state);
+        if (state.activeView == SidebarView::TrackLayout) {
+            drawTrackLayoutPanel(state);
+        } else {
+            drawTrackInfoPanel(state);
+        }
     }
     ImGui::EndChild();
     ImGui::PopStyleVar();

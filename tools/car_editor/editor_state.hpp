@@ -5,8 +5,10 @@
 #include "game/entities/car_damage.hpp"
 #include "game/entities/atmosphere.hpp"
 #include "game/entities/ground_plane.hpp"
+#include "game/entities/track.hpp"
 #include "physics/world.hpp"
 #include "physics/vehicle.hpp"
+#include "renderer/mesh.hpp"
 
 #include <bgfx/bgfx.h>
 #include <imgui.h>
@@ -15,10 +17,17 @@
 
 namespace car_editor {
 
+enum class EditorWorkspace {
+    Vehicles = 0,
+    Tracks
+};
+
 enum class SidebarView {
     CarBuilder = 0,
     VehicleInfo,
-    Atmosphere
+    Atmosphere,
+    TrackLayout,
+    TrackInfo
 };
 
 struct EditorLayout {
@@ -78,6 +87,23 @@ struct EditorState {
     viber::GroundPlane groundPlane;
     bgfx::ProgramHandle groundProgram = BGFX_INVALID_HANDLE;
 
+    viber::Track track;
+    viber::Mesh trackPreviewMesh;
+    viber::Mesh trackTunnelPreviewMesh;
+    viber::Mesh trackPointMarkerMesh;
+    char trackName[64] = "Harbor Loop";
+    char trackFilePath[128] = "assets/tracks/official/harbor_loop.json";
+    char terrainBiome[32] = "temperate";
+    char terrainHeightmapEditPath[128] = "heightmap_edit.png";
+    char terrainHoleMaskPath[128] = "hole_mask.png";
+    bool trackClosedLoop = true;
+    float trackHoleRadius = 10.0f;
+    float trackHoleDepth = 12.0f;
+    int tunnelHoleA = 0;
+    int tunnelHoleB = 1;
+    viber::u32 tunnelSeed = 1337;
+
+    EditorWorkspace activeWorkspace = EditorWorkspace::Vehicles;
     SidebarView activeView = SidebarView::CarBuilder;
     bool autoRotate = true;
     bool showGround = true;
@@ -91,5 +117,8 @@ struct EditorState {
 EditorLayout computeLayout(const ImVec2& display, const EditorStyle& style);
 void applyCarDefinition(EditorState& state, const viber::CarDefinition& def);
 void resetCamera(EditorState& state);
+void rebuildTrackPreview(EditorState& state);
+void resetTrackCamera(EditorState& state);
+void syncTrackEditorFieldsFromTrack(EditorState& state);
 
 } // namespace car_editor

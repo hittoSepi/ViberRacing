@@ -4,8 +4,69 @@
 #include <glm/ext/matrix_clip_space.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <cmath>
+#include <cstdio>
+#include <vector>
 
 namespace car_editor {
+
+namespace {
+
+void rebuildTunnelPreview(EditorState& state) {
+    state.trackTunnelPreviewMesh.destroy();
+
+    std::vector<viber::VertexSimple> vertices;
+    std::vector<viber::u32> indices;
+
+    constexpr int radialSegments = 12;
+    for (const auto& tunnel : state.track.tunnels()) {
+        if (tunnel.spline.getNumControlPoints() < 2) {
+            continue;
+        }
+
+        const auto frames = tunnel.spline.sampleFrames(48);
+        if (frames.size() < 2) {
+            continue;
+        }
+
+        const viber::u32 baseIndex = static_cast<viber::u32>(vertices.size());
+        for (const auto& frame : frames) {
+            for (int segment = 0; segment < radialSegments; ++segment) {
+                const float angle = viber::TWO_PI * static_cast<float>(segment) / static_cast<float>(radialSegments);
+                const float x = std::cos(angle) * tunnel.radius;
+                const float y = std::sin(angle) * tunnel.radius;
+                const viber::vec3 offset = frame.binormal * x + frame.normal * y;
+                vertices.push_back({
+                    frame.position + offset,
+                    viber::vec3{0.10f, 0.44f, 0.58f}
+                });
+            }
+        }
+
+        for (size_t ring = 0; ring + 1 < frames.size(); ++ring) {
+            const viber::u32 ringBase = baseIndex + static_cast<viber::u32>(ring * radialSegments);
+            const viber::u32 nextRingBase = ringBase + radialSegments;
+            for (int segment = 0; segment < radialSegments; ++segment) {
+                const viber::u32 nextSegment = static_cast<viber::u32>((segment + 1) % radialSegments);
+                const viber::u32 i0 = ringBase + static_cast<viber::u32>(segment);
+                const viber::u32 i1 = ringBase + nextSegment;
+                const viber::u32 i2 = nextRingBase + static_cast<viber::u32>(segment);
+                const viber::u32 i3 = nextRingBase + nextSegment;
+                indices.push_back(i0);
+                indices.push_back(i2);
+                indices.push_back(i1);
+                indices.push_back(i1);
+                indices.push_back(i2);
+                indices.push_back(i3);
+            }
+        }
+    }
+
+    if (!vertices.empty() && !indices.empty()) {
+        state.trackTunnelPreviewMesh.create(vertices, indices);
+    }
+}
+
+} // namespace
 
 EditorLayout computeLayout(const ImVec2& display, const EditorStyle& style) {
     const float boardWidth = glm::max(style.minBoardWidth, display.x - style.shellMargin * 2.0f);
@@ -89,11 +150,45 @@ void applyCarDefinition(EditorState& state, const viber::CarDefinition& def) {
     state.carBody.setDefinition(def);
 }
 
+void rebuildTrackPreview(EditorState& state) {
+    state.trackPreviewMesh.destroy();
+    rebuildTunnelPreview(state);
+
+    const auto& vertices = state.track.getRoadVertices();
+    const auto& indices = state.track.getRoadIndices();
+    if (vertices.empty() || indices.empty()) {
+        return;
+    }
+
+    std::vector<viber::VertexSimple> simpleVertices;
+    simpleVertices.reserve(vertices.size());
+    for (const auto& vertex : vertices) {
+        simpleVertices.push_back({vertex, viber::vec3{0.18f, 0.20f, 0.22f}});
+    }
+
+    state.trackPreviewMesh.create(simpleVertices, indices);
+}
+
 void resetCamera(EditorState& state) {
     state.camera.yaw = 0.3f;
     state.camera.pitch = 0.35f;
     state.camera.radius = 8.0f;
     state.camera.target = viber::vec3{0.0f, 0.5f, 0.0f};
+}
+
+void resetTrackCamera(EditorState& state) {
+    state.camera.yaw = 0.4f;
+    state.camera.pitch = 0.65f;
+    state.camera.radius = 70.0f;
+    state.camera.target = viber::vec3{0.0f, 0.0f, 0.0f};
+}
+
+void syncTrackEditorFieldsFromTrack(EditorState& state) {
+    std::snprintf(state.trackName, sizeof(state.trackName), "%s", state.track.getName().c_str());
+    const auto& terrain = state.track.terrainSettings();
+    std::snprintf(state.terrainBiome, sizeof(state.terrainBiome), "%s", terrain.biome.c_str());
+    std::snprintf(state.terrainHeightmapEditPath, sizeof(state.terrainHeightmapEditPath), "%s", terrain.heightmapEditPath.c_str());
+    std::snprintf(state.terrainHoleMaskPath, sizeof(state.terrainHoleMaskPath), "%s", terrain.holeMaskPath.c_str());
 }
 
 } // namespace car_editor
